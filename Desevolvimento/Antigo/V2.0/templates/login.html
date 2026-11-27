@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Login — RRFS Meteorologia{% endblock %}
+{% block content %}
+<div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;">
+<div style="width:100%; max-width:400px;">
+
+  <!-- Logo -->
+  <div style="text-align:center; margin-bottom:32px;">
+    <div style="font-size:56px; margin-bottom:8px;">🌦️</div>
+    <h1 style="font-size:22px; font-weight:700; color:var(--info)">RRFS Meteorologia</h1>
+    <p style="color:var(--text2); font-size:13px; margin-top:4px">
+      Sistema de Alerta Meteorológico Familiar
+    </p>
+  </div>
+
+  <div class="card">
+    <!-- Tabs Login / Cadastro -->
+    <div class="tabs">
+      <button class="tab-btn active" data-group="auth" data-tab="tab-login">
+        🔑 Login
+      </button>
+      <button class="tab-btn" data-group="auth" data-tab="tab-cadastro">
+        📝 Cadastrar
+      </button>
+    </div>
+
+    <!-- Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for cat, msg in messages %}
+    <div class="flash flash-{{ cat }}">{{ msg }}</div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <!-- LOGIN -->
+    <div id="tab-login" class="tab-content active" data-group="auth">
+      <form method="post" action="/login">
+        <div class="form-group">
+          <label class="form-label">Usuário</label>
+          <input class="form-control" type="text" name="username"
+                 placeholder="Seu usuário" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Senha</label>
+          <div style="position:relative">
+            <input class="form-control" type="password" name="senha"
+                   id="inp-senha" placeholder="Sua senha" required>
+            <button type="button" onclick="toggleSenha('inp-senha', this)"
+              style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
+                     background:none;border:none;cursor:pointer;color:var(--text2);font-size:16px">
+              👁️
+            </button>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">
+          Entrar
+        </button>
+      </form>
+    </div>
+
+    <!-- CADASTRO -->
+    <div id="tab-cadastro" class="tab-content" data-group="auth">
+      <form method="post" action="/cadastro">
+        <div class="form-group">
+          <label class="form-label">Nome completo</label>
+          <input class="form-control" type="text" name="nome"
+                 placeholder="Seu nome" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Usuário</label>
+          <input class="form-control" type="text" name="username"
+                 placeholder="Somente letras e números" required
+                 pattern="[a-zA-Z0-9]+" minlength="3">
+        </div>
+        <div class="form-group">
+          <label class="form-label">E-mail</label>
+          <input class="form-control" type="email" name="email"
+                 placeholder="seu@email.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Senha</label>
+          <div style="position:relative">
+            <input class="form-control" type="password" name="senha"
+                   id="inp-senha2" placeholder="Mínimo 6 caracteres"
+                   required minlength="6">
+            <button type="button" onclick="toggleSenha('inp-senha2', this)"
+              style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
+                     background:none;border:none;cursor:pointer;color:var(--text2);font-size:16px">
+              👁️
+            </button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirmar senha</label>
+          <input class="form-control" type="password" name="senha2"
+                 id="inp-senha3" placeholder="Repita a senha" required>
+        </div>
+        <div id="msg-cadastro" style="font-size:12px;color:var(--danger);margin-bottom:8px;"></div>
+        <button class="btn btn-success btn-block" type="submit">
+          Criar conta
+        </button>
+        <p style="font-size:12px;color:var(--text2);margin-top:12px;text-align:center">
+          ⚠️ Seu cadastro precisará ser aprovado pelo administrador.
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <p style="text-align:center;color:var(--text2);font-size:12px;margin-top:24px">
+    RRFS Meteorologia © 2024 — Sistema Local de Alertas
+  </p>
+</div>
+</div>
+
+<script>
+function toggleSenha(id, btn) {
+  const inp = document.getElementById(id);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+// Validação confirmação de senha
+document.querySelector('input[name="senha2"]')?.addEventListener('input', () => {
+  const s1 = document.getElementById('inp-senha2').value;
+  const s2 = document.getElementById('inp-senha3').value;
+  const msg = document.getElementById('msg-cadastro');
+  msg.textContent = s1 !== s2 && s2 ? 'Senhas não conferem' : '';
+});
+</script>
+{% endblock %}

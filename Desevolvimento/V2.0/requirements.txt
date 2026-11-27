@@ -1,0 +1,32 @@
+# Core
+Flask
+Flask-CORS
+Werkzeug
+
+# API e Requisições
+requests
+aiohttp
+asyncio-contextmanager
+
+# Data Science - Compatível com Python 3.13
+numpy
+pandas
+scipy
+scikit-learn
+
+# Database
+SQLAlchemy
+Flask-SQLAlchemy
+
+# ML avançado
+joblib
+
+# Utilitários
+python-dotenv
+Pillow
+
+# Logging e Monitoring
+python-json-logger
+
+# Cache
+cachetools

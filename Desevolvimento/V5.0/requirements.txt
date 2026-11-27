@@ -1,0 +1,9 @@
+flask
+flask-sqlalchemy
+flask-cors
+aiohttp
+requests
+numpy
+pandas
+Pillow
+netCDF4

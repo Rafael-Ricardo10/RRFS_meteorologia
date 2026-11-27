@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Alertas — RRFS{% endblock %}
+{% block content %}
+<div class="container">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <h2>⚠️ Central de Alertas</h2>
+    <button class="btn btn-primary btn-sm" onclick="atualizarAlertas()">🔄 Atualizar</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-group="al" data-tab="tab-ativos">Alertas Ativos</button>
+    <button class="tab-btn" data-group="al" data-tab="tab-historico">Histórico</button>
+    <button class="tab-btn" data-group="al" data-tab="tab-calibracao">Calibração</button>
+  </div>
+
+  <!-- Ativos -->
+  <div id="tab-ativos" class="tab-content active" data-group="al">
+    <div id="alertas-ativos-lista">
+      <div style="text-align:center;padding:40px">
+        <div class="spinner"></div>
+        <p style="color:var(--text2);margin-top:16px">Analisando condições...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Histórico -->
+  <div id="tab-historico" class="tab-content" data-group="al">
+    <div id="historico-lista">
+      <p style="color:var(--text2);text-align:center;padding:40px">
+        O histórico será exibido após alertas serem gerados.
+      </p>
+    </div>
+  </div>
+
+  <!-- Calibração -->
+  <div id="tab-calibracao" class="tab-content" data-group="al">
+    <div class="card">
+      <div class="card-title">🎯 Status da Calibração Automática</div>
+      <p style="color:var(--text2);font-size:13px;margin-bottom:16px">
+        O sistema aprende com o histórico de previsões para reduzir falsos positivos
+        e melhorar a precisão dos alertas.
+      </p>
+      <div id="cal-stats">
+        <div class="spinner"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">📊 Como funciona</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.8">
+        <p>• <strong style="color:var(--text)">Validação Cruzada:</strong>
+           Compara previsões de 3 modelos numéricos (ECMWF, ICON, GFS)</p>
+        <p>• <strong style="color:var(--text)">Limiar Adaptativo:</strong>
+           Ajusta automaticamente os limiares de alerta baseado nos acertos/erros</p>
+        <p>• <strong style="color:var(--text)">Confirmação por Radar:</strong>
+           Cruza dados de radar com previsões para validar alertas</p>
+        <p>• <strong style="color:var(--text)">CAPE + LI:</strong>
+           Índices termodinâmicos para detectar potencial convectivo</p>
+        <p>• <strong style="color:var(--text)">Concordância Mínima:</strong>
+           Alerta PERIGO exige ≥50% de concordância entre modelos</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const LAT = {{ user_lat|default(0) }};
+const LON = {{ user_lon|default(0) }};
+
+async function atualizarAlertas() {
+  const el = document.getElementById('alertas-ativos-lista');
+  el.innerHTML = '<div style="text-align:center;padding:40px"><div class="spinner"></div></div>';
+
+  try {
+    const dados = await fetch(`/api/alertas?lat=${LAT}&lon=${LON}`).then(r => r.json());
+    const alertas = dados.alertas || [];
+
+    if (alertas.length === 0) {
+      el.innerHTML = `
+        <div style="text-align:center;padding:48px">
+          <div style="font-size:48px;margin-bottom:16px">✅</div>
+          <h3 style="color:var(--success);margin-bottom:8px">Nenhum alerta ativo</h3>
+          <p style="color:var(--text2)">Condições favoráveis previstas para as próximas 24 horas.</p>
+        </div>`;
+      return;
+    }
+
+    const porSev = {};
+    alertas.forEach(a => {
+      (porSev[a.severidade] = porSev[a.severidade] || []).push(a);
+    });
+
+    let html = `<p style="color:var(--text2);font-size:12px;margin-bottom:12px">
+      ${alertas.length} alerta(s) para as próximas 24h — ${new Date().toLocaleString('pt-BR')}
+    </p>`;
+
+    ['EXTREMO','PERIGO','ALERTA','ATENCAO','INFO'].forEach(sev => {
+      if (!porSev[sev]) return;
+      porSev[sev].forEach(a => {
+        const hora = a.hora ? a.hora.substr(11,5) : '';
+        html += `
+          <div class="alert-box alert-${sev}" style="margin-bottom:10px">
+            <div class="alert-icon" style="font-size:24px">${a.icone}</div>
+            <div class="alert-content" style="flex:1">
+              <div class="alert-title" style="font-size:14px">
+                ${a.severidade} — ${a.tipo.replace(/_/g,' ').toUpperCase()}
+              </div>
+              <div class="alert-desc" style="font-size:13px;margin-top:4px">
+                ${a.descricao}
+              </div>
+              <div style="display:flex;gap:16px;margin-top:6px;font-size:12px;color:var(--text2)">
+                <span>⏰ ${hora || 'Agora'}</span>
+                ${a.concordancia < 1
+                  ? `<span>📊 Concordância: ${(a.concordancia*100).toFixed(0)}%</span>` : ''}
+                ${a.n_modelos ? `<span>🤖 ${a.n_modelos} modelo(s)</span>` : ''}
+              </div>
+            </div>
+          </div>`;
+      });
+    });
+
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = '<p style="color:var(--danger)">Erro ao carregar alertas.</p>';
+  }
+}
+
+async function carregarCalibracao() {
+  try {
+    const dados = await fetch(`/api/calibracao?lat=${LAT}&lon=${LON}`).then(r => r.json());
+    const el = document.getElementById('cal-stats');
+
+    if (!dados.stats || Object.keys(dados.stats).length === 0) {
+      el.innerHTML = `<p style="color:var(--text2)">
+        Calibração ainda não iniciada. Dados serão coletados automaticamente.
+      </p>`;
+      return;
+    }
+
+    let html = '<table class="table"><thead><tr>' +
+      '<th>Tipo</th><th>Total</th><th>Acertos</th><th>F. Positivos</th>' +
+      '<th>F. Negativos</th><th>Precisão</th></tr></thead><tbody>';
+
+    for (const [tipo, s] of Object.entries(dados.stats)) {
+      const prec = s.total > 0 ? (s.acertos / s.total * 100).toFixed(0) : 0;
+      html += `<tr>
+        <td>${tipo.replace(/_/g,' ')}</td>
+        <td>${s.total}</td>
+        <td style="color:var(--success)">${s.acertos}</td>
+        <td style="color:var(--warning)">${s.falsos_pos}</td>
+        <td style="color:var(--danger)">${s.falsos_neg}</td>
+        <td><strong>${prec}%</strong></td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+
+    if (dados.limiares_ajustados && Object.keys(dados.limiares_ajustados).length > 0) {
+      html += '<div class="card-title" style="margin-top:16px">Limiares Ajustados</div>';
+      for (const [k, v] of Object.entries(dados.limiares_ajustados)) {
+        html += `<div style="font-size:12px;padding:4px 0">
+          ${k}: <strong>${v}</strong>
+        </div>`;
+      }
+    }
+
+    el.innerHTML = html;
+  } catch(e) {
+    document.getElementById('cal-stats').innerHTML =
+      '<p style="color:var(--danger)">Erro ao carregar calibração.</p>';
+  }
+}
+
+atualizarAlertas();
+carregarCalibracao();
+setInterval(atualizarAlertas, 5 * 60 * 1000);
+</script>
+{% endblock %}

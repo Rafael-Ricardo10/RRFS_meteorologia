@@ -1,0 +1,43 @@
+{
+  "usuarios": {
+    "admin": {
+      "username": "admin",
+      "nome": "Administrador",
+      "email": "admin@rrfs.local",
+      "senha_hash": "acbaa4270a34973ea6aca571b8f3497ac8091c286a6cace19fb9cec4fd5d1bb0",
+      "salt": "5e75c5c22f6898d962971c706bc47a0d",
+      "perfil": "admin",
+      "status": "ativo",
+      "criado_em": "2026-08-30T10:43:17.131165",
+      "ultimo_login": "2026-08-30T11:00:10.793726",
+      "localizacao": {},
+      "config_alertas": {
+        "condicoes_alerta": []
+      },
+      "senha_padrao": true
+    },
+    "rafaelricardo": {
+      "username": "rafaelricardo",
+      "nome": "Rafael Ricardo",
+      "email": "teste@teste.com",
+      "senha_hash": "0712b448ca347081484c4032643d50dfdeadab58acd9690e93dde311d227d4ca",
+      "salt": "6024947a1bf916ce680e806c4c441666",
+      "perfil": "usuario",
+      "status": "ativo",
+      "criado_em": "2026-08-30T10:59:57.135411",
+      "ultimo_login": "2026-08-30T11:00:27.270082",
+      "localizacao": {
+        "lat": -27.703108,
+        "lon": -49.292362,
+        "cidade": "Alfredo Wagner",
+        "estado": "Santa Catarina",
+        "pais": "Brasil",
+        "display_name": "Rio Adaga, Alfredo Wagner, Santa Catarina, Região Sul, Brasil"
+      },
+      "config_alertas": {
+        "condicoes_alerta": []
+      },
+      "senha_padrao": false
+    }
+  }
+}

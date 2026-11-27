@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - RRFS Meteorologia</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+        --bg-primary: #0a0e1a;
+        --bg-secondary: #0f1420;
+        --bg-card: #1a2133;
+        --accent: #3b82f6;
+        --accent-hover: #2563eb;
+        --text-primary: #e2e8f0;
+        --text-secondary: #94a3b8;
+        --text-muted: #64748b;
+        --border: #2a3448;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        min-height: 100vh;
+    }
+
+    .header {
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border);
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .header-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 18px;
+    }
+
+    .badge-admin {
+        background: var(--accent);
+        color: white;
+        padding: 2px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .btn-logout {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+
+    .btn-logout:hover {
+        border-color: var(--danger);
+        color: var(--danger);
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
+    }
+
+    /* STATS */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin-bottom: 32px;
+    }
+
+    .stat-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px;
+    }
+
+    .stat-label {
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+    }
+
+    .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+    }
+
+    /* TABS */
+    .tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 24px;
+        border-bottom: 1px solid var(--border);
+        overflow-x: auto;
+    }
+
+    .tab {
+        padding: 12px 20px;
+        cursor: pointer;
+        color: var(--text-secondary);
+        font-size: 14px;
+        font-weight: 500;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .tab.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* TABLE */
+    .table-container {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th {
+        text-align: left;
+        padding: 14px 20px;
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    td {
+        padding: 14px 20px;
+        border-top: 1px solid var(--border);
+        font-size: 14px;
+    }
+
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .badge-success { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+    .badge-warning { background: rgba(245,158,11,0.15); color: #fcd34d; }
+    .badge-danger { background: rgba(239,68,68,0.15); color: #fca5a5; }
+    .badge-info { background: rgba(59,130,246,0.15); color: #93c5fd; }
+
+    .btn-sm {
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        margin-right: 6px;
+        transition: all 0.2s;
+    }
+
+    .btn-approve {
+        background: rgba(16,185,129,0.15);
+        color: #6ee7b7;
+    }
+    .btn-approve:hover { background: rgba(16,185,129,0.25); }
+
+    .btn-reject, .btn-delete {
+        background: rgba(239,68,68,0.15);
+        color: #fca5a5;
+    }
+    .btn-reject:hover, .btn-delete:hover { background: rgba(239,68,68,0.25); }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+        font-size: 48px;
+        margin-bottom: 12px;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: var(--text-muted);
+    }
+
+    /* ===== LLM SETTINGS ===== */
+    .llm-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 24px;
+        margin-bottom: 20px;
+    }
+
+    .llm-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .llm-title {
+        font-size: 16px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        padding: 6px 12px;
+        border-radius: 20px;
+    }
+
+    .status-online {
+        background: rgba(16,185,129,0.15);
+        color: #6ee7b7;
+    }
+
+    .status-offline {
+        background: rgba(239,68,68,0.15);
+        color: #fca5a5;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+    }
+
+    .current-model-box {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .current-model-label {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-bottom: 4px;
+    }
+
+    .current-model-name {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--accent);
+    }
+
+    .model-selector {
+        margin-bottom: 20px;
+    }
+
+    .model-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .model-option {
+        background: var(--bg-secondary);
+        border: 2px solid var(--border);
+        border-radius: 10px;
+        padding: 16px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .model-option:hover {
+        border-color: var(--accent);
+        background: rgba(59,130,246,0.05);
+    }
+
+    .model-option.selected {
+        border-color: var(--accent);
+        background: rgba(59,130,246,0.1);
+    }
+
+    .model-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .model-name {
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .model-size {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    .model-check {
+        font-size: 20px;
+        color: var(--accent);
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .model-option.selected .model-check {
+        opacity: 1;
+    }
+
+    .llm-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-primary {
+        background: var(--accent);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: background 0.2s;
+    }
+
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-secondary {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .btn-secondary:hover { border-color: var(--accent); }
+
+    .alert-box {
+        padding: 14px 16px;
+        border-radius: 10px;
+        font-size: 13px;
+        margin-bottom: 16px;
+        display: none;
+    }
+
+    .alert-box.show { display: block; }
+
+    .alert-success {
+        background: rgba(16,185,129,0.1);
+        border: 1px solid rgba(16,185,129,0.3);
+        color: #6ee7b7;
+    }
+
+    .alert-error {
+        background: rgba(239,68,68,0.1);
+        border: 1px solid rgba(239,68,68,0.3);
+        color: #fca5a5;
+    }
+
+    .alert-warning {
+        background: rgba(245,158,11,0.1);
+        border: 1px solid rgba(245,158,11,0.3);
+        color: #fcd34d;
+    }
+
+    .test-response-box {
+        background: var(--bg-secondary);
+        border-left: 3px solid var(--accent);
+        border-radius: 8px;
+        padding: 16px;
+        margin-top: 16px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        display: none;
+    }
+
+    .test-response-box.show { display: block; }
+
+    .spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-top-color: currentColor;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+        margin-right: 6px;
+        vertical-align: middle;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-logo">
+        🌦️ RRFS Meteorologia <span class="badge-admin">ADMIN</span>
+    </div>
+    <button class="btn-logout" onclick="logout()">Sair</button>
+</div>
+
+<div class="container">
+    <!-- STATS -->
+    <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total de Usuários</div>
+            <div class="stat-value" id="stat-total-users">--</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Aprovados</div>
+            <div class="stat-value" id="stat-approved">--</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Pendentes</div>
+            <div class="stat-value" id="stat-pending">--</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Previsões Geradas</div>
+            <div class="stat-value" id="stat-predictions">--</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Localizações</div>
+            <div class="stat-value" id="stat-locations">--</div>
+        </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+        <div class="tab active" data-tab="pending">Aguardando Aprovação</div>
+        <div class="tab" data-tab="all">Todos os Usuários</div>
+        <div class="tab" data-tab="llm">🧠 Modelo de IA</div>
+    </div>
+
+    <!-- PENDING USERS -->
+    <div class="tab-content active" id="pending-content">
+        <div class="table-container">
+            <div id="pending-table-wrapper">
+                <div class="loading">Carregando...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ALL USERS -->
+    <div class="tab-content" id="all-content">
+        <div class="table-container">
+            <div id="all-table-wrapper">
+                <div class="loading">Carregando...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LLM SETTINGS -->
+    <div class="tab-content" id="llm-content">
+        <div class="llm-card">
+            <div class="llm-header">
+                <div class="llm-title">🧠 Configuração do Modelo LLM (Ollama)</div>
+                <div class="status-indicator" id="ollama-status">
+                    <span class="status-dot"></span>
+                    <span id="status-text">Verificando...</span>
+                </div>
+            </div>
+
+            <div id="llm-alert" class="alert-box"></div>
+
+            <div class="current-model-box">
+                <div>
+                    <div class="current-model-label">Modelo Atualmente Ativo</div>
+                    <div class="current-model-name" id="current-model-name">Carregando...</div>
+                </div>
+                <button class="btn-secondary" onclick="testCurrentModel()" id="test-btn">
+                    🧪 Testar Modelo
+                </button>
+            </div>
+
+            <div id="test-response" class="test-response-box"></div>
+
+            <div class="model-selector">
+                <div class="llm-title" style="font-size: 14px; margin-bottom: 12px;">
+                    Modelos Disponíveis no Ollama
+                </div>
+                <div class="model-list" id="model-list">
+                    <div class="loading">Buscando modelos instalados...</div>
+                </div>
+            </div>
+
+            <div class="llm-actions">
+                <button class="btn-primary" onclick="applySelectedModel()" id="apply-btn" disabled>
+                    ✓ Aplicar Modelo Selecionado
+                </button>
+                <button class="btn-secondary" onclick="refreshModels()">
+                    🔄 Atualizar Lista
+                </button>
+            </div>
+        </div>
+
+        <div class="llm-card">
+            <div class="llm-title" style="margin-bottom: 12px;">ℹ️ Como instalar novos modelos</div>
+            <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.8;">
+                Para adicionar novos modelos, acesse o terminal do servidor onde o Ollama está rodando e execute:<br><br>
+                <code style="background: var(--bg-secondary); padding: 4px 10px; border-radius: 6px; color: #93c5fd;">
+                    ollama pull mistral
+                </code><br>
+                <code style="background: var(--bg-secondary); padding: 4px 10px; border-radius: 6px; color: #93c5fd; margin-top: 6px; display: inline-block;">
+                    ollama pull llama3
+                </code><br>
+                <code style="background: var(--bg-secondary); padding: 4px 10px; border-radius: 6px; color: #93c5fd; margin-top: 6px; display: inline-block;">
+                    ollama pull gemma2
+                </code><br><br>
+                Depois clique em <strong>"Atualizar Lista"</strong> acima para que o novo modelo apareça.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedModel = null;
+    let currentActiveModel = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadStats();
+        loadPendingUsers();
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab + '-content').classList.add('active');
+
+                if (tab.dataset.tab === 'all') loadAllUsers();
+                if (tab.dataset.tab === 'llm') loadLLMSettings();
+            });
+        });
+    });
+
+    async function logout() {
+        await fetch('/logout', { method: 'POST' });
+        window.location.href = '/login';
+    }
+
+    // ===== STATS =====
+    async function loadStats() {
+        try {
+            const res = await fetch('/api/admin/stats');
+            const data = await res.json();
+
+            document.getElementById('stat-total-users').textContent = data.total_users;
+            document.getElementById('stat-approved').textContent = data.approved_users;
+            document.getElementById('stat-pending').textContent = data.pending_users;
+            document.getElementById('stat-predictions').textContent = data.total_predictions;
+            document.getElementById('stat-locations').textContent = data.total_locations;
+        } catch (err) {
+            console.error('Erro ao carregar stats:', err);
+        }
+    }
+
+    // ===== PENDING USERS =====
+    async function loadPendingUsers() {
+        try {
+            const res = await fetch('/api/admin/pending-users');
+            const users = await res.json();
+
+            const wrapper = document.getElementById('pending-table-wrapper');
+
+            if (!users.length) {
+                wrapper.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✅</div>
+                        <div>Nenhum usuário aguardando aprovação</div>
+                    </div>
+                `;
+                return;
+            }
+
+            wrapper.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Usuário</th>
+                            <th>Email</th>
+                            <th>Registrado em</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${users.map(u => `
+                            <tr>
+                                <td>${u.username}</td>
+                                <td>${u.email}</td>
+                                <td>${new Date(u.created_at).toLocaleString('pt-BR')}</td>
+                                <td>
+                                    <button class="btn-sm btn-approve" onclick="approveUser(${u.id})">✓ Aprovar</button>
+                                    <button class="btn-sm btn-reject" onclick="rejectUser(${u.id})">✕ Rejeitar</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        } catch (err) {
+            console.error('Erro ao carregar usuários pendentes:', err);
+        }
+    }
+
+    async function loadAllUsers() {
+        try {
+            const res = await fetch('/api/admin/users');
+            const users = await res.json();
+
+            const wrapper = document.getElementById('all-table-wrapper');
+
+            wrapper.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Usuário</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Tipo</th>
+                            <th>Último Login</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${users.map(u => `
+                            <tr>
+                                <td>${u.username}</td>
+                                <td>${u.email}</td>
+                                <td>
+                                    ${u.approved
+                                        ? '<span class="badge badge-success">Aprovado</span>'
+                                        : '<span class="badge badge-warning">Pendente</span>'}
+                                </td>
+                                <td>
+                                    ${u.is_admin
+                                        ? '<span class="badge badge-info">Admin</span>'
+                                        : '<span class="badge badge-secondary">Usuário</span>'}
+                                </td>
+                                <td>${u.last_login ? new Date(u.last_login).toLocaleString('pt-BR') : 'Nunca'}</td>
+                                <td>
+                                    ${!u.is_admin
+                                        ? `<button class="btn-sm btn-delete" onclick="deleteUser(${u.id})">🗑️ Deletar</button>`
+                                        : '—'}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        } catch (err) {
+            console.error('Erro ao carregar todos usuários:', err);
+        }
+    }
+
+    async function approveUser(id) {
+        try {
+            await fetch(`/api/admin/approve-user/${id}`, { method: 'POST' });
+            await loadPendingUsers();
+            await loadStats();
+        } catch (err) {
+            console.error('Erro ao aprovar:', err);
+        }
+    }
+
+    async function rejectUser(id) {
+        if (!confirm('Tem certeza que deseja rejeitar este usuário?')) return;
+
+        try {
+            await fetch(`/api/admin/reject-user/${id}`, { method: 'POST' });
+            await loadPendingUsers();
+            await loadStats();
+        } catch (err) {
+            console.error('Erro ao rejeitar:', err);
+        }
+    }
+
+    async function deleteUser(id) {
+        if (!confirm('Tem certeza que deseja deletar este usuário permanentemente?')) return;
+
+        try {
+            await fetch(`/api/admin/delete-user/${id}`, { method: 'DELETE' });
+            await loadAllUsers();
+            await loadStats();
+        } catch (err) {
+            console.error('Erro ao deletar:', err);
+        }
+    }
+
+    // ===== LLM SETTINGS =====
+    function showLLMAlert(message, type) {
+        const alertBox = document.getElementById('llm-alert');
+        alertBox.textContent = message;
+        alertBox.className = `alert-box show alert-${type}`;
+
+        if (type === 'success') {
+            setTimeout(() => alertBox.classList.remove('show'), 4000);
+        }
+    }
+
+    async function loadLLMSettings() {
+        await checkOllamaStatus();
+        await loadCurrentModel();
+        await loadAvailableModels();
+    }
+
+    async function checkOllamaStatus() {
+        const statusEl = document.getElementById('ollama-status');
+        const statusText = document.getElementById('status-text');
+
+        try {
+            const res = await fetch('/api/admin/ollama/status');
+            const data = await res.json();
+
+            if (data.online) {
+                statusEl.className = 'status-indicator status-online';
+                statusText.textContent = 'Ollama Online';
+            } else {
+                statusEl.className = 'status-indicator status-offline';
+                statusText.textContent = 'Ollama Offline';
+            }
+        } catch (err) {
+            statusEl.className = 'status-indicator status-offline';
+            statusText.textContent = 'Erro de conexão';
+        }
+    }
+
+    async function loadCurrentModel() {
+        try {
+            const res = await fetch('/api/admin/ollama/current-model');
+            const data = await res.json();
+
+            currentActiveModel = data.model;
+            document.getElementById('current-model-name').textContent = data.model || 'Nenhum';
+        } catch (err) {
+            document.getElementById('current-model-name').textContent = 'Erro ao carregar';
+        }
+    }
+
+    async function loadAvailableModels() {
+        const listContainer = document.getElementById('model-list');
+        listContainer.innerHTML = '<div class="loading">Buscando modelos instalados...</div>';
+
+        try {
+            const res = await fetch('/api/admin/ollama/models');
+            const data = await res.json();
+
+            if (data.warning) {
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <div>${data.warning}</div>
+                    </div>
+                `;
+                return;
+            }
+
+            if (!data.models || !data.models.length) {
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📦</div>
+                        <div>Nenhum modelo instalado</div>
+                    </div>
+                `;
+                return;
+            }
+
+            listContainer.innerHTML = data.models.map(m => {
+                const sizeGB = (m.size / (1024**3)).toFixed(2);
+                const isActive = m.name === currentActiveModel;
+
+                return `
+                    <div class="model-option ${isActive ? 'selected' : ''}"
+                         data-model="${m.name}"
+                         onclick="selectModel('${m.name}')">
+                        <div class="model-info">
+                            <div class="model-name">${m.name} ${isActive ? '✓ (ativo)' : ''}</div>
+                            <div class="model-size">${sizeGB} GB</div>
+                        </div>
+                        <div class="model-check">✓</div>
+                    </div>
+                `;
+            }).join('');
+
+        } catch (err) {
+            listContainer.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">❌</div>
+                    <div>Erro ao buscar modelos: ${err.message}</div>
+                </div>
+            `;
+        }
+    }
+
+    function selectModel(modelName) {
+        selectedModel = modelName;
+
+        document.querySelectorAll('.model-option').forEach(el => {
+            el.classList.toggle('selected', el.dataset.model === modelName);
+        });
+
+        document.getElementById('apply-btn').disabled = (modelName === currentActiveModel);
+    }
+
+    async function applySelectedModel() {
+        if (!selectedModel) return;
+
+        const btn = document.getElementById('apply-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>Aplicando...';
+
+        try {
+            const res = await fetch('/api/admin/ollama/set-model', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ model: selectedModel })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                showLLMAlert(`✓ Modelo alterado para "${selectedModel}" com sucesso!`, 'success');
+                currentActiveModel = selectedModel;
+                await loadCurrentModel();
+                await loadAvailableModels();
+            } else {
+                showLLMAlert(data.error || 'Erro ao aplicar modelo', 'error');
+            }
+        } catch (err) {
+            showLLMAlert('Erro de conexão ao aplicar modelo', 'error');
+        } finally {
+            btn.innerHTML = '✓ Aplicar Modelo Selecionado';
+            btn.disabled = true;
+        }
+    }
+
+    async function testCurrentModel() {
+        const btn = document.getElementById('test-btn');
+        const responseBox = document.getElementById('test-response');
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>Testando...';
+        responseBox.classList.remove('show');
+
+        try {
+            const res = await fetch('/api/admin/ollama/test-model', { method: 'POST' });
+            const data = await res.json();
+
+            if (data.success) {
+                responseBox.innerHTML = `
+                    <strong>✓ Modelo:</strong> ${data.model}<br>
+                    <strong>Resposta:</strong> ${data.response}
+                `;
+                responseBox.classList.add('show');
+                showLLMAlert('Modelo testado com sucesso!', 'success');
+            } else {
+                showLLMAlert(data.error || 'Modelo não respondeu', 'error');
+            }
+        } catch (err) {
+            showLLMAlert('Erro ao testar modelo', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '🧪 Testar Modelo';
+        }
+    }
+
+    async function refreshModels() {
+        await loadLLMSettings();
+    }
+</script>
+</body>
+</html>

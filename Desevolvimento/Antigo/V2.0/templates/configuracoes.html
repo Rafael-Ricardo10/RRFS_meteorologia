@@ -1,0 +1,717 @@
+{% extends "base.html" %}
+{% block title %}Configurações — RRFS{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+/* ── Configurações específico ───────────────────────────────────── */
+#mapa-config {
+  height: 360px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+.loc-info {
+  background: var(--bg3);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+.loc-info .loc-nome  { font-weight: 600; margin-bottom: 4px; }
+.loc-info .loc-coord { color: var(--text2); font-size: 11px; font-family: monospace; }
+
+/* Sugestões autocomplete */
+#sugestoes-lista {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-height: 200px;
+  overflow-y: auto;
+  display: none;
+  position: absolute;
+  width: 100%;
+  z-index: 50;
+  box-shadow: var(--shadow);
+  top: calc(100% + 4px);
+  left: 0;
+}
+.sugestao-item {
+  padding: 9px 13px;
+  cursor: pointer;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  transition: background .1s;
+}
+.sugestao-item:last-child { border-bottom: none; }
+.sugestao-item:hover      { background: var(--bg3); }
+
+/* Condições de alerta */
+.cond-row {
+  display: grid;
+  grid-template-columns: 1fr 60px 70px 50px 1fr 32px;
+  gap: 6px;
+  align-items: center;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+.cond-row select,
+.cond-row input[type="number"],
+.cond-row input[type="text"] {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 5px 7px;
+  font-size: 12px;
+  width: 100%;
+  font-family: inherit;
+  outline: none;
+}
+.cond-row select:focus,
+.cond-row input:focus { border-color: var(--accent); }
+.cond-unidade { font-size: 11px; color: var(--text2); text-align: center; }
+.btn-remover-cond {
+  background: rgba(248,81,73,.15);
+  border: 1px solid rgba(248,81,73,.3);
+  color: var(--danger);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  transition: background .15s;
+  flex-shrink: 0;
+}
+.btn-remover-cond:hover { background: rgba(248,81,73,.3); }
+
+/* Predefinições rápidas */
+.pred-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.pred-btn {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text2);
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .15s;
+  font-family: inherit;
+}
+.pred-btn:hover {
+  background: var(--bg4);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+/* Seção de senha */
+.senha-wrap { position: relative; }
+.senha-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 15px;
+  padding: 0;
+  line-height: 1;
+}
+.senha-toggle:hover { color: var(--text); }
+
+@media (max-width: 600px) {
+  .cond-row {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2 style="margin-bottom:20px;font-size:20px">⚙️ Configurações</h2>
+
+  <div class="grid grid-2">
+
+    <!-- ══════════════════════════════════════════════════════════════
+         CARD — LOCALIZAÇÃO
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="card">
+      <div class="card-title">📍 Localização</div>
+
+      <!-- Mapa interativo -->
+      <div id="mapa-config"></div>
+
+      <!-- Busca com autocomplete -->
+      <div style="position:relative;margin-bottom:10px">
+        <div style="display:flex;gap:6px">
+          <input id="inp-busca" class="form-control"
+                 placeholder="Buscar cidade, estado, país..."
+                 autocomplete="off">
+          <button class="btn btn-primary" onclick="buscarLocal()"
+                  style="flex-shrink:0">🔍</button>
+        </div>
+        <div id="sugestoes-lista"></div>
+      </div>
+
+      <!-- Botão GPS -->
+      <button class="btn btn-success btn-block" onclick="usarGPS()"
+              style="margin-bottom:12px">
+        📡 Usar minha localização GPS
+      </button>
+
+      <!-- Info da localização atual -->
+      <div class="loc-info">
+        <div class="loc-nome" id="loc-display-nome">
+          {% if user.localizacao.display_name %}
+            {{ user.localizacao.display_name }}
+          {% else %}
+            <span style="color:var(--text2)">Nenhuma localização configurada</span>
+          {% endif %}
+        </div>
+        <div class="loc-coord" id="loc-display-coord">
+          {% if user.localizacao.lat %}
+            🌐 {{ '%.6f'|format(user.localizacao.lat|float) }},
+               {{ '%.6f'|format(user.localizacao.lon|float) }}
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Formulário de salvamento (campos hidden) -->
+      <form method="post" action="/configuracoes/localizacao" id="form-loc">
+        <input type="hidden" id="f-lat"     name="lat">
+        <input type="hidden" id="f-lon"     name="lon">
+        <input type="hidden" id="f-cidade"  name="cidade">
+        <input type="hidden" id="f-estado"  name="estado">
+        <input type="hidden" id="f-pais"    name="pais">
+        <input type="hidden" id="f-display" name="display_name">
+        <button class="btn btn-primary btn-block" type="submit" id="btn-salvar-loc">
+          💾 Salvar Localização
+        </button>
+      </form>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         CARD — ALERTAS PERSONALIZADOS
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="card">
+      <div class="card-title">🔔 Alertas Personalizados</div>
+
+      <p style="color:var(--text2);font-size:12px;margin-bottom:14px;line-height:1.6">
+        Configure condições para receber alertas customizados.
+        O sistema alertará quando qualquer condição for atingida nas próximas 24h.
+      </p>
+
+      <!-- Lista de condições -->
+      <div id="cond-lista"></div>
+
+      <button class="btn btn-sm" onclick="adicionarCond()" style="margin-bottom:14px">
+        ➕ Adicionar condição
+      </button>
+
+      <!-- Predefinições rápidas -->
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:14px">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:8px;font-weight:500">
+          ⚡ Adicionar rapidamente:
+        </div>
+        <div class="pred-grid" id="pred-grid">
+          <!-- Preenchido pelo JS para evitar conflito Jinja2 -->
+        </div>
+      </div>
+
+      <!-- Formulário de salvar -->
+      <form method="post" action="/configuracoes/alertas" id="form-alertas">
+        <input type="hidden" id="alertas-json" name="alertas_json">
+        <button class="btn btn-primary btn-block" type="submit"
+                onclick="prepararAlertasJson(event)">
+          💾 Salvar Alertas Personalizados
+        </button>
+      </form>
+
+      <!-- Guia rápido -->
+      <div style="margin-top:14px;background:var(--bg3);border-radius:var(--radius);
+                  padding:12px;font-size:12px;color:var(--text2)">
+        <div style="font-weight:600;color:var(--text);margin-bottom:6px">
+          📖 Como funciona
+        </div>
+        <p>• <strong style="color:var(--text)">CAPE</strong> — energia para tempestades (J/kg)</p>
+        <p>• <strong style="color:var(--text)">Rajada</strong> — velocidade máxima do vento (km/h)</p>
+        <p>• <strong style="color:var(--text)">Probabilidade</strong> — chance de chuva (%)</p>
+        <p>• O sistema verifica as próximas <strong style="color:var(--text)">24 horas</strong></p>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         CARD — ALTERAR SENHA
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="card">
+      <div class="card-title">🔒 Alterar Senha</div>
+
+      {% if user.get('senha_padrao') %}
+      <div style="background:rgba(210,153,34,.1);border:1px solid rgba(210,153,34,.3);
+                  border-radius:var(--radius-sm);padding:10px 12px;
+                  margin-bottom:14px;font-size:13px;color:var(--warning)">
+        ⚠️ Você está usando a senha padrão. Recomendamos alterá-la agora.
+      </div>
+      {% endif %}
+
+      <form method="post" action="/configuracoes/senha" id="form-senha">
+        <div class="form-group">
+          <label class="form-label">Senha atual</label>
+          <div class="senha-wrap">
+            <input class="form-control" type="password"
+                   name="senha_atual" id="inp-senha-atual"
+                   placeholder="Digite a senha atual" required>
+            <button type="button" class="senha-toggle"
+                    onclick="toggleSenhaVis('inp-senha-atual', this)">👁</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nova senha</label>
+          <div class="senha-wrap">
+            <input class="form-control" type="password"
+                   name="nova_senha" id="inp-nova-senha"
+                   placeholder="Mínimo 6 caracteres"
+                   minlength="6" required>
+            <button type="button" class="senha-toggle"
+                    onclick="toggleSenhaVis('inp-nova-senha', this)">👁</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirmar nova senha</label>
+          <div class="senha-wrap">
+            <input class="form-control" type="password"
+                   name="nova_senha2" id="inp-nova-senha2"
+                   placeholder="Repita a nova senha" required>
+            <button type="button" class="senha-toggle"
+                    onclick="toggleSenhaVis('inp-nova-senha2', this)">👁</button>
+          </div>
+          <div id="msg-senha" style="font-size:12px;color:var(--danger);
+                                     margin-top:4px;display:none">
+            ❌ Senhas não conferem
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit"
+                id="btn-alterar-senha">
+          🔒 Alterar Senha
+        </button>
+      </form>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         CARD — INFORMAÇÕES DA CONTA
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="card">
+      <div class="card-title">👤 Informações da Conta</div>
+      <div class="detalhe-item" style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <span class="text-muted text-small">Usuário</span>
+        <span style="font-weight:600">{{ user.username }}</span>
+      </div>
+      <div class="detalhe-item" style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <span class="text-muted text-small">Nome</span>
+        <span>{{ user.nome }}</span>
+      </div>
+      <div class="detalhe-item" style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <span class="text-muted text-small">E-mail</span>
+        <span>{{ user.email }}</span>
+      </div>
+      <div class="detalhe-item" style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <span class="text-muted text-small">Perfil</span>
+        <span>
+          {% if user.perfil == 'admin' %}
+          <span class="badge badge-admin">ADMINISTRADOR</span>
+          {% else %}
+          Usuário padrão
+          {% endif %}
+        </span>
+      </div>
+      <div class="detalhe-item" style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <span class="text-muted text-small">Membro desde</span>
+        <span>{{ user.criado_em[:10] if user.criado_em else '—' }}</span>
+      </div>
+      <div class="detalhe-item" style="padding:8px 0">
+        <span class="text-muted text-small">Último acesso</span>
+        <span>{{ user.ultimo_login[:16].replace('T',' ') if user.ultimo_login else '—' }}</span>
+      </div>
+    </div>
+
+  </div><!-- /grid -->
+</div><!-- /container -->
+{% endblock %}
+
+
+{% block extra_scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+'use strict';
+
+// ════════════════════════════════════════════════════════════════════
+// MAPA
+// ════════════════════════════════════════════════════════════════════
+const LAT_INIT = {{ user.localizacao.lat | default(-15.7801) | float }};
+const LON_INIT = {{ user.localizacao.lon | default(-47.9292) | float }};
+const TEM_LOC  = {{ 'true' if user.localizacao.lat else 'false' }};
+
+const mapa = L.map('mapa-config').setView(
+  [LAT_INIT, LON_INIT],
+  TEM_LOC ? 11 : 4
+);
+
+// Tile dark (CartoDB)
+L.tileLayer(
+  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  { attribution: '© CartoDB © OpenStreetMap', maxZoom: 19, subdomains: 'abcd' }
+).addTo(mapa);
+
+// Marcador
+let marcador = null;
+if (TEM_LOC) {
+  marcador = L.marker([LAT_INIT, LON_INIT]).addTo(mapa);
+}
+
+// Clique no mapa → posiciona marcador + reverse geocoding
+mapa.on('click', async function(e) {
+  const { lat, lng } = e.latlng;
+  posicionarMarcador(lat, lng);
+  try {
+    const d = await fetch(
+      '/api/reverse?lat=' + lat.toFixed(6) + '&lon=' + lng.toFixed(6)
+    ).then(r => r.json());
+    if (d && d.display_name) aplicarLocalizacao(d);
+    else {
+      preencherFormLoc(lat, lng, '', '', '', lat.toFixed(4) + ', ' + lng.toFixed(4));
+    }
+  } catch(e) {
+    preencherFormLoc(lat, lng, '', '', '', lat.toFixed(4) + ', ' + lng.toFixed(4));
+  }
+});
+
+function posicionarMarcador(lat, lon) {
+  if (marcador) mapa.removeLayer(marcador);
+  marcador = L.marker([lat, lon]).addTo(mapa);
+}
+
+function aplicarLocalizacao(d) {
+  posicionarMarcador(parseFloat(d.lat), parseFloat(d.lon));
+  mapa.setView([d.lat, d.lon], 13);
+  preencherFormLoc(
+    d.lat, d.lon,
+    d.cidade || '', d.estado || '', d.pais || '',
+    d.display_name || ''
+  );
+}
+
+function preencherFormLoc(lat, lon, cidade, estado, pais, display) {
+  document.getElementById('f-lat').value     = parseFloat(lat).toFixed(6);
+  document.getElementById('f-lon').value     = parseFloat(lon).toFixed(6);
+  document.getElementById('f-cidade').value  = cidade;
+  document.getElementById('f-estado').value  = estado;
+  document.getElementById('f-pais').value    = pais;
+  document.getElementById('f-display').value = display;
+  document.getElementById('loc-display-nome').textContent  = display || 'Localização selecionada';
+  document.getElementById('loc-display-coord').textContent =
+    '🌐 ' + parseFloat(lat).toFixed(6) + ', ' + parseFloat(lon).toFixed(6);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// BUSCA / AUTOCOMPLETE
+// ════════════════════════════════════════════════════════════════════
+let _timerBusca = null;
+const _inpBusca   = document.getElementById('inp-busca');
+const _sugLista   = document.getElementById('sugestoes-lista');
+
+_inpBusca.addEventListener('input', function() {
+  clearTimeout(_timerBusca);
+  const q = this.value.trim();
+  if (q.length < 3) { ocultarSugestoes(); return; }
+  _timerBusca = setTimeout(() => carregarSugestoes(q), 380);
+});
+
+_inpBusca.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); buscarLocal(); }
+});
+
+async function buscarLocal() {
+  const q = _inpBusca.value.trim();
+  if (!q) return;
+  showLoader('Buscando...');
+  try {
+    const lista = await fetch('/api/geocoding?q=' + encodeURIComponent(q))
+                  .then(r => r.json());
+    if (lista && lista.length > 0) {
+      aplicarLocalizacao(lista[0]);
+      _inpBusca.value = lista[0].nome || lista[0].display_name || q;
+      ocultarSugestoes();
+    } else {
+      alert('Localização não encontrada. Tente ser mais específico.');
+    }
+  } catch(e) {
+    alert('Erro ao buscar localização.');
+  }
+  hideLoader();
+}
+
+async function carregarSugestoes(q) {
+  try {
+    const lista = await fetch('/api/geocoding?q=' + encodeURIComponent(q))
+                  .then(r => r.json());
+    if (!lista || lista.length === 0) { ocultarSugestoes(); return; }
+
+    _sugLista.innerHTML = '';
+    lista.forEach(item => {
+      const div = document.createElement('div');
+      div.className   = 'sugestao-item';
+      div.textContent = item.nome || item.display_name || '';
+      div.addEventListener('click', () => {
+        aplicarLocalizacao(item);
+        _inpBusca.value = item.nome || item.display_name || '';
+        ocultarSugestoes();
+      });
+      _sugLista.appendChild(div);
+    });
+    _sugLista.style.display = 'block';
+  } catch(e) { ocultarSugestoes(); }
+}
+
+function ocultarSugestoes() {
+  _sugLista.style.display = 'none';
+  _sugLista.innerHTML     = '';
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#inp-busca') && !e.target.closest('#sugestoes-lista')) {
+    ocultarSugestoes();
+  }
+});
+
+// ── GPS ──────────────────────────────────────────────────────────────────────
+function usarGPS() {
+  if (!navigator.geolocation) {
+    alert('Geolocalização não disponível neste navegador.');
+    return;
+  }
+  showLoader('Obtendo localização GPS...');
+  navigator.geolocation.getCurrentPosition(
+    async pos => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      try {
+        const d = await fetch(
+          '/api/reverse?lat=' + lat.toFixed(6) + '&lon=' + lon.toFixed(6)
+        ).then(r => r.json());
+        if (d && d.display_name) aplicarLocalizacao(d);
+        else preencherFormLoc(lat, lon, '', '', '', lat.toFixed(4) + ', ' + lon.toFixed(4));
+      } catch(e) {
+        preencherFormLoc(lat, lon, '', '', '', lat.toFixed(4) + ', ' + lon.toFixed(4));
+      }
+      hideLoader();
+    },
+    err => {
+      hideLoader();
+      const msgs = {
+        1: 'Permissão negada. Permita o acesso à localização no navegador.',
+        2: 'Localização indisponível. Tente buscar manualmente.',
+        3: 'Tempo esgotado. Tente novamente.',
+      };
+      alert(msgs[err.code] || 'Erro ao obter GPS.');
+    },
+    { timeout: 10000, enableHighAccuracy: true }
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════
+// ALERTAS PERSONALIZADOS
+// ════════════════════════════════════════════════════════════════════
+
+// Mapa de variáveis disponíveis (sem caracteres especiais nos values)
+const VARIAVEIS = {
+  'temperature_2m':              { label: 'Temperatura (°C)',         unidade: '°C',   step: '0.5',  def: '35'  },
+  'wind_speed_10m':              { label: 'Vento médio (km/h)',        unidade: 'km/h', step: '1',    def: '40'  },
+  'wind_gusts_10m':              { label: 'Rajada de vento (km/h)',    unidade: 'km/h', step: '1',    def: '60'  },
+  'precipitation':               { label: 'Chuva por hora (mm)',       unidade: 'mm',   step: '0.5',  def: '10'  },
+  'precipitation_probability':   { label: 'Prob. de chuva (%)',        unidade: '%',    step: '5',    def: '70'  },
+  'relative_humidity_2m':        { label: 'Umidade relativa (%)',      unidade: '%',    step: '5',    def: '90'  },
+  'cape':                        { label: 'CAPE - Instabilidade (J/kg)', unidade: 'J/kg', step: '50', def: '1000'},
+  'cloud_cover':                 { label: 'Cobertura de nuvens (%)',   unidade: '%',    step: '5',    def: '80'  },
+  'visibility':                  { label: 'Visibilidade (m)',           unidade: 'm',    step: '100',  def: '1000'},
+  'uv_index':                    { label: 'Índice UV',                 unidade: '',     step: '1',    def: '8'   },
+  'snowfall':                    { label: 'Neve (mm)',                  unidade: 'mm',   step: '0.1',  def: '1'   },
+  'apparent_temperature':        { label: 'Sensação térmica (°C)',     unidade: '°C',   step: '0.5',  def: '40'  },
+};
+
+const OPERADORES = ['>=', '<=', '>', '<'];
+
+// Condições salvas do usuário (vindas do servidor via Jinja)
+const CONDS_SALVAS = {{ user.config_alertas.condicoes_alerta | default([]) | tojson }};
+
+// Predefinições — definidas em JS puro (sem Jinja dentro de onclick)
+const PREDEFINICOES = [
+  { label: '💨 Rajada >60km/h',    variavel: 'wind_gusts_10m',           op: '>=', valor: 60,   desc: 'Rajada forte' },
+  { label: '🌧️ Chuva >20mm/h',    variavel: 'precipitation',             op: '>=', valor: 20,   desc: 'Chuva forte'  },
+  { label: '🌡️ Temp >38°C',       variavel: 'temperature_2m',            op: '>=', valor: 38,   desc: 'Calor extremo'},
+  { label: '❄️ Temp <5°C',         variavel: 'temperature_2m',            op: '<=', valor: 5,    desc: 'Frio intenso' },
+  { label: '⛈️ CAPE >1000',       variavel: 'cape',                      op: '>=', valor: 1000, desc: 'CAPE alto'    },
+  { label: '💧 Prob. >80%',        variavel: 'precipitation_probability', op: '>=', valor: 80,   desc: 'Alta prob. chuva'},
+  { label: '💨 Vento >50km/h',     variavel: 'wind_speed_10m',            op: '>=', valor: 50,   desc: 'Vento forte'  },
+  { label: '☀️ UV >10',           variavel: 'uv_index',                  op: '>=', valor: 10,   desc: 'UV extremo'   },
+];
+
+// Renderiza os botões de predefinição
+(function renderPredefinicoes() {
+  const grid = document.getElementById('pred-grid');
+  PREDEFINICOES.forEach((p, i) => {
+    const btn = document.createElement('button');
+    btn.type      = 'button';
+    btn.className = 'pred-btn';
+    btn.textContent = p.label;
+    btn.dataset.idx = i;
+    btn.addEventListener('click', () => {
+      const pd = PREDEFINICOES[parseInt(btn.dataset.idx)];
+      adicionarCond({
+        variavel:  pd.variavel,
+        operador:  pd.op,
+        valor:     pd.valor,
+        descricao: pd.desc,
+      });
+    });
+    grid.appendChild(btn);
+  });
+})();
+
+// Carrega condições salvas
+(function carregarCondsSalvas() {
+  CONDS_SALVAS.forEach(c => adicionarCond(c));
+})();
+
+function criarSelectVar(valorAtual) {
+  let html = '<select name="variavel" onchange="atualizarUnidade(this)">';
+  for (const [key, info] of Object.entries(VARIAVEIS)) {
+    const sel = key === valorAtual ? ' selected' : '';
+    html += '<option value="' + key + '"' + sel + '>' + info.label + '</option>';
+  }
+  html += '</select>';
+  return html;
+}
+
+function criarSelectOp(valorAtual) {
+  let html = '<select name="operador">';
+  OPERADORES.forEach(op => {
+    const sel = op === valorAtual ? ' selected' : '';
+    html += '<option value="' + op + '"' + sel + '>' + op + '</option>';
+  });
+  html += '</select>';
+  return html;
+}
+
+function adicionarCond(dados) {
+  dados = dados || {};
+  const variavel  = dados.variavel  || 'temperature_2m';
+  const operador  = dados.operador  || '>=';
+  const valor     = dados.valor     !== undefined ? dados.valor : '';
+  const descricao = dados.descricao || '';
+  const unidade   = VARIAVEIS[variavel] ? VARIAVEIS[variavel].unidade : '';
+  const step      = VARIAVEIS[variavel] ? VARIAVEIS[variavel].step    : '1';
+  const def       = VARIAVEIS[variavel] ? VARIAVEIS[variavel].def     : '';
+
+  const row = document.createElement('div');
+  row.className = 'cond-row';
+  row.innerHTML =
+    criarSelectVar(variavel) +
+    criarSelectOp(operador)  +
+    '<input type="number" name="valor" value="' + valor + '" ' +
+      'step="' + step + '" placeholder="' + def + '">' +
+    '<div class="cond-unidade">' + unidade + '</div>' +
+    '<input type="text" name="descricao" value="' + descricao + '" ' +
+      'placeholder="Descrição...">' +
+    '<button type="button" class="btn-remover-cond" onclick="removerCond(this)" ' +
+      'title="Remover">✕</button>';
+
+  document.getElementById('cond-lista').appendChild(row);
+}
+
+function removerCond(btn) {
+  btn.closest('.cond-row').remove();
+}
+
+function atualizarUnidade(sel) {
+  const row     = sel.closest('.cond-row');
+  const divUn   = row.querySelector('.cond-unidade');
+  const inpVal  = row.querySelector('input[name="valor"]');
+  const info    = VARIAVEIS[sel.value];
+  if (info) {
+    divUn.textContent    = info.unidade;
+    inpVal.step          = info.step;
+    inpVal.placeholder   = info.def;
+  }
+}
+
+function prepararAlertasJson(e) {
+  const condicoes = [];
+  document.querySelectorAll('#cond-lista .cond-row').forEach(row => {
+    const variavel  = row.querySelector('[name="variavel"]').value;
+    const operador  = row.querySelector('[name="operador"]').value;
+    const valorRaw  = row.querySelector('[name="valor"]').value;
+    const descricao = row.querySelector('[name="descricao"]').value.trim();
+    const valor     = parseFloat(valorRaw);
+    if (!isNaN(valor)) {
+      condicoes.push({
+        variavel,
+        operador,
+        valor,
+        descricao: descricao || variavel + ' ' + operador + ' ' + valor,
+        unidade: VARIAVEIS[variavel] ? VARIAVEIS[variavel].unidade : '',
+      });
+    }
+  });
+  document.getElementById('alertas-json').value = JSON.stringify({
+    condicoes_alerta: condicoes
+  });
+  // deixa o form submeter normalmente
+}
+
+// ════════════════════════════════════════════════════════════════════
+// SENHA
+// ════════════════════════════════════════════════════════════════════
+function toggleSenhaVis(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+// Validação de confirmação de senha em tempo real
+document.getElementById('inp-nova-senha2').addEventListener('input', function() {
+  const s1  = document.getElementById('inp-nova-senha').value;
+  const msg = document.getElementById('msg-senha');
+  if (this.value && this.value !== s1) {
+    msg.style.display = 'block';
+  } else {
+    msg.style.display = 'none';
+  }
+});
+
+document.getElementById('form-senha').addEventListener('submit', function(e) {
+  const s1 = document.getElementById('inp-nova-senha').value;
+  const s2 = document.getElementById('inp-nova-senha2').value;
+  if (s1 !== s2) {
+    e.preventDefault();
+    document.getElementById('msg-senha').style.display = 'block';
+    document.getElementById('inp-nova-senha2').focus();
+  }
+});
+</script>
+{% endblock %}

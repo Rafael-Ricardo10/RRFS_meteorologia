@@ -1,0 +1,29 @@
+RRFS_Meteorologia/
+├── main.py
+├── config.py
+├── requirements.txt
+├── dados/
+│   ├── cache/
+│   ├── radar/
+│   ├── usuarios/
+│   ├── alertas/
+│   ├── calibracao/
+│   └── logs/
+├── modulos/
+│   ├── __init__.py
+│   ├── auth.py
+│   ├── meteorologia.py
+│   ├── radar.py
+│   ├── alertas.py
+│   ├── geocoding.py
+│   ├── cache_manager.py
+│   ├── calibracao.py
+│   └── modelos.py
+└── templates/
+    ├── base.html
+    ├── login.html
+    ├── cadastro.html
+    ├── dashboard.html
+    ├── admin.html
+    ├── configuracoes.html
+    └── alertas.html

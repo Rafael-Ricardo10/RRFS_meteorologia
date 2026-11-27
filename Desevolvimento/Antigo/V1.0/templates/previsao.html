@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}Previsão 7 Dias — RRFS{% endblock %}
+{% block extra_head %}
+<style>
+.prev-dia {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.prev-dia-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding-bottom: 12px;
+}
+.prev-dia-body { display: none; padding-top: 12px; border-top: 1px solid var(--border); }
+.prev-dia-body.open { display: block; }
+.hora-row {
+  display: grid;
+  grid-template-columns: 50px 24px 52px 60px 60px 60px 60px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 4px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.hora-row:hover { background: var(--bg3); }
+.hora-row .col-hora { color: var(--text2); }
+</style>
+{% endblock %}
+{% block content %}
+<div class="container">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <h2>📅 Previsão Detalhada — 7 Dias</h2>
+    <button class="btn btn-primary btn-sm" onclick="carregarPrevisao()">🔄</button>
+  </div>
+
+  <!-- Cabeçalho colunas -->
+  <div style="background:var(--bg3);border-radius:var(--radius);padding:8px 16px;
+              margin-bottom:8px;font-size:11px;color:var(--text2)">
+    <div style="display:grid;grid-template-columns:50px 24px 52px 60px 60px 60px 60px;gap:8px">
+      <span>Hora</span><span></span>
+      <span>Temp</span><span>💧 Prob</span>
+      <span>🌧️ mm</span><span>💨 Vento</span><span>💨 Raj.</span>
+    </div>
+  </div>
+
+  <div id="previsao-lista">
+    <div style="text-align:center;padding:48px"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<script>
+const LAT = {{ user_lat|default(0) }};
+const LON = {{ user_lon|default(0) }};
+const WMO = {{ wmo_map|tojson }};
+const DIAS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const MESES= ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+function tempCor(t) {
+  if (t <= 5)  return '#74c0fc';
+  if (t <= 15) return '#94d82d';
+  if (t <= 25) return '#3fb950';
+  if (t <= 33) return '#d29922';
+  return '#f85149';
+}
+
+async function carregarPrevisao() {
+  const el = document.getElementById('previsao-lista');
+  el.innerHTML = '<div style="text-align:center;padding:48px"><div class="spinner"></div></div>';
+
+  const dados = await fetch(`/api/meteo?lat=${LAT}&lon=${LON}`).then(r=>r.json()).catch(()=>({}));
+  const h = dados.hourly || {};
+  const d = dados.daily  || {};
+  const times = h.time || [];
+
+  if (times.length === 0) {
+    el.innerHTML = '<p style="color:var(--danger)">Sem dados de previsão.</p>';
+    return;
+  }
+
+  // Agrupa por dia
+  const dias = {};
+  times.forEach((t, i) => {
+    const dia = t.substr(0, 10);
+    if (!dias[dia]) dias[dia] = [];
+    dias[dia].push({
+      hora: t.substr(11, 5),
+      temp: h.temperature_2m?.[i],
+      wmo:  h.weather_code?.[i] ?? 0,
+      prob: h.precipitation_probability?.[i] ?? 0,
+      prec: h.precipitation?.[i] ?? 0,
+      vento: h.wind_speed_10m?.[i] ?? 0,
+      gust:  h.wind_gusts_10m?.[i] ?? 0,
+      cape:  h.cape?.[i] ?? 0,
+    });
+  });
+
+  // Dados diários
+  const diariosMap = {};
+  (d.time || []).forEach((t, i) => {
+    diariosMap[t] = {
+      tmax: d.temperature_2m_max?.[i],
+      tmin: d.temperature_2m_min?.[i],
+      wmo:  d.weather_code?.[i] ?? 0,
+      prob: d.precipitation_probability_max?.[i] ?? 0,
+      prec: d.precipitation_sum?.[i] ?? 0,
+      vmax: d.wind_speed_10m_max?.[i] ?? 0,
+      gmax: d.wind_gusts_10m_max?.[i] ?? 0,
+      uv:   d.uv_index_max?.[i] ?? 0,
+    };
+  });
+
+  let html = '';
+  Object.entries(dias).forEach(([dia, horas]) => {
+    const dt = new Date(dia + 'T12:00:00');
+    const nomeDia = `${DIAS[dt.getDay()]}, ${dt.getDate()} ${MESES[dt.getMonth()]}`;
+    const dd = diariosMap[dia] || {};
+    const [desc, ico] = WMO[dd.wmo] || ['', '❓'];
+
+    let horasHtml = `
+      <div style="display:grid;grid-template-columns:50px 24px 52px 60px 60px 60px 60px;
+                  gap:8px;padding:4px;font-size:11px;color:var(--text2);margin-bottom:4px">
+        <span>Hora</span><span></span><span>Temp</span>
+        <span>Prob.</span><span>Chuva</span><span>Vento</span><span>Rajada</span>
+      </div>`;
+
+    horas.forEach(h => {
+      const [, hIco] = WMO[h.wmo] || ['', '❓'];
+      horasHtml += `
+        <div class="hora-row">
+          <span class="col-hora">${h.hora}</span>
+          <span>${hIco}</span>
+          <span style="color:${tempCor(h.temp)};font-weight:600">
+            ${h.temp?.toFixed(1) ?? '--'}°
+          </span>
+          <span style="color:var(--info)">${h.prob}%</span>
+          <span>${h.prec > 0 ? h.prec.toFixed(1)+'mm' : '—'}</span>
+          <span>${h.vento.toFixed(0)} km/h</span>
+          <span style="color:${h.gust>=60?'var(--warning)':'var(--text2)'}">
+            ${h.gust.toFixed(0)} km/h
+          </span>
+        </div>`;
+    });
+
+    html += `
+      <div class="prev-dia">
+        <div class="prev-dia-header" onclick="toggleDia(this)">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:24px">${ico}</span>
+            <div>
+              <div style="font-weight:600">${nomeDia}</div>
+              <div style="font-size:12px;color:var(--text2)">${desc}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:20px;align-items:center">
+            <div style="text-align:center">
+              <div style="font-size:18px;font-weight:700;color:${tempCor(dd.tmax)}">
+                ${dd.tmax?.toFixed(0) ?? '--'}°
+              </div>
+              <div style="font-size:12px;color:var(--text2)">${dd.tmin?.toFixed(0) ?? '--'}°</div>
+            </div>
+            ${dd.prob > 20 ? `<div style="color:var(--info);font-size:12px">
+              💧 ${dd.prob}%<br>${dd.prec > 0 ? dd.prec.toFixed(1)+'mm' : ''}
+            </div>` : ''}
+            ${dd.gmax >= 50 ? `<div style="color:var(--warning);font-size:12px">
+              💨 ${dd.gmax.toFixed(0)} km/h
+            </div>` : ''}
+            ${dd.uv >= 8 ? `<div style="color:var(--danger);font-size:12px">
+              ☀️ UV ${dd.uv.toFixed(0)}
+            </div>` : ''}
+            <span style="color:var(--text2);font-size:18px">›</span>
+          </div>
+        </div>
+        <div class="prev-dia-body">${horasHtml}</div>
+      </div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+function toggleDia(header) {
+  const body = header.nextElementSibling;
+  body.classList.toggle('open');
+  const arrow = header.querySelector('span:last-child');
+  arrow.textContent = body.classList.contains('open') ? '⌄' : '›';
+}
+
+carregarPrevisao();
+</script>
+{% endblock %}

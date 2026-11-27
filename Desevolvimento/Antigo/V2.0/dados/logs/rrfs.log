@@ -1,0 +1,289 @@
+2026-08-30 10:43:17,131 [RRFS.Auth] INFO: Admin padrão criado (admin/admin)
+2026-08-30 10:43:17,138 [RRFS] INFO: ============================================================
+2026-08-30 10:43:17,138 [RRFS] INFO:   RRFS Meteorologia — iniciando
+2026-08-30 10:43:17,138 [RRFS] INFO:   Acesse: http://localhost:6800
+2026-08-30 10:43:17,138 [RRFS] INFO:   Admin padrão: admin / admin
+2026-08-30 10:43:17,138 [RRFS] INFO: ============================================================
+2026-08-30 10:43:17,138 [RRFS] INFO: Locais carregados: 0 local(is)
+2026-08-30 10:43:17,138 [RRFS] INFO: Thread Job-Background iniciada
+2026-08-30 10:43:17,139 [RRFS] INFO: Thread Job-Memoria iniciada
+2026-08-30 10:43:17,139 [RRFS] INFO: Thread Job-SincLocais iniciada
+2026-08-30 10:43:17,142 [werkzeug] INFO: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:6800
+ * Running on http://192.168.1.154:6800
+2026-08-30 10:43:17,142 [werkzeug] INFO: [33mPress CTRL+C to quit[0m
+2026-08-30 10:43:20,271 [app] ERROR: Exception on /dashboard [GET]
+Traceback (most recent call last):
+  File "/home/rafael/Programação/RRFS_meteorologia/env/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/home/rafael/Programação/RRFS_meteorologia/env/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/home/rafael/Programação/RRFS_meteorologia/env/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/home/rafael/Programação/RRFS_meteorologia/env/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/rafael/Programação/RRFS_meteorologia/app.py", line 98, in decorated
+    return f(*args, **kwargs)
+  File "/home/rafael/Programação/RRFS_meteorologia/app.py", line 195, in dashboard
+    tem_loc = bool(u.get('localizacao', {}).get('lat'))
+                   ^^^^^
+AttributeError: 'NoneType' object has no attribute 'get'
+2026-08-30 10:43:20,273 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 10:43:20] "[35m[1mGET /dashboard HTTP/1.1[0m" 500 -
+2026-08-30 10:43:30,040 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 10:43:30] "[32mGET / HTTP/1.1[0m" 302 -
+2026-08-30 10:43:30,046 [app] ERROR: Exception on /dashboard [GET]
+Traceback (most recent call last):
+  File "/home/rafael/Programação/RRFS_meteorologia/env/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/home/rafael/Programação/RRFS_meteorologia/env/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/home/rafael/Programação/RRFS_meteorologia/env/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/home/rafael/Programação/RRFS_meteorologia/env/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/rafael/Programação/RRFS_meteorologia/app.py", line 98, in decorated
+    return f(*args, **kwargs)
+  File "/home/rafael/Programação/RRFS_meteorologia/app.py", line 195, in dashboard
+    tem_loc = bool(u.get('localizacao', {}).get('lat'))
+                   ^^^^^
+AttributeError: 'NoneType' object has no attribute 'get'
+2026-08-30 10:43:30,047 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 10:43:30] "[35m[1mGET /dashboard HTTP/1.1[0m" 500 -
+2026-08-30 10:43:47,139 [RRFS] INFO: Job background iniciado — monitoramento contínuo ativo
+2026-08-30 10:43:47,139 [RRFS] INFO: Job BG: atualizando 0 local(is)
+2026-08-30 10:59:07,244 [RRFS] INFO: ============================================================
+2026-08-30 10:59:07,244 [RRFS] INFO:   RRFS Meteorologia — iniciando
+2026-08-30 10:59:07,244 [RRFS] INFO:   Acesse: http://localhost:6800
+2026-08-30 10:59:07,244 [RRFS] INFO:   Admin padrão: admin / admin
+2026-08-30 10:59:07,244 [RRFS] INFO: ============================================================
+2026-08-30 10:59:07,244 [RRFS] INFO: Locais carregados: 0 local(is)
+2026-08-30 10:59:07,244 [RRFS] INFO: Thread Job-Background iniciada
+2026-08-30 10:59:07,245 [RRFS] INFO: Thread Job-Memoria iniciada
+2026-08-30 10:59:07,245 [RRFS] INFO: Thread Job-SincLocais iniciada
+2026-08-30 10:59:07,248 [werkzeug] INFO: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:6800
+ * Running on http://192.168.1.154:6800
+2026-08-30 10:59:07,248 [werkzeug] INFO: [33mPress CTRL+C to quit[0m
+2026-08-30 10:59:09,972 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 10:59:09] "[32mGET /dashboard HTTP/1.1[0m" 302 -
+2026-08-30 10:59:09,990 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 10:59:09] "GET /login HTTP/1.1" 200 -
+2026-08-30 10:59:37,245 [RRFS] INFO: Job background iniciado — monitoramento contínuo ativo
+2026-08-30 10:59:37,245 [RRFS] INFO: Job BG: atualizando 0 local(is)
+2026-08-30 10:59:57,136 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 10:59:57] "[32mPOST /cadastro HTTP/1.1[0m" 302 -
+2026-08-30 10:59:57,139 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 10:59:57] "GET /login HTTP/1.1" 200 -
+2026-08-30 11:00:04,266 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:00:04] "POST /login HTTP/1.1" 200 -
+2026-08-30 11:00:10,793 [RRFS] INFO: Login: admin
+2026-08-30 11:00:10,794 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:00:10] "[32mPOST /login HTTP/1.1[0m" 302 -
+2026-08-30 11:00:10,809 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:00:10] "GET /dashboard HTTP/1.1" 200 -
+2026-08-30 11:00:14,843 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:00:14] "GET /admin HTTP/1.1" 200 -
+2026-08-30 11:00:14,912 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:00:14] "GET /api/admin/cache HTTP/1.1" 200 -
+2026-08-30 11:00:15,413 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:00:15] "GET /api/admin/sistema HTTP/1.1" 200 -
+2026-08-30 11:00:16,083 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:00:16] "[32mPOST /admin/usuario/rafaelricardo/aprovar HTTP/1.1[0m" 302 -
+2026-08-30 11:00:16,086 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:00:16] "GET /admin HTTP/1.1" 200 -
+2026-08-30 11:00:16,114 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:00:16] "GET /api/admin/cache HTTP/1.1" 200 -
+2026-08-30 11:00:16,616 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:00:16] "GET /api/admin/sistema HTTP/1.1" 200 -
+2026-08-30 11:00:18,204 [RRFS] INFO: Logout: admin
+2026-08-30 11:00:18,204 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:00:18] "[32mGET /logout HTTP/1.1[0m" 302 -
+2026-08-30 11:00:18,208 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:00:18] "GET /login HTTP/1.1" 200 -
+2026-08-30 11:00:27,270 [RRFS] INFO: Login: rafaelricardo
+2026-08-30 11:00:27,270 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:00:27] "[32mPOST /login HTTP/1.1[0m" 302 -
+2026-08-30 11:00:27,275 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:00:27] "GET /dashboard HTTP/1.1" 200 -
+2026-08-30 11:00:37,463 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:00:37] "GET /configuracoes HTTP/1.1" 200 -
+2026-08-30 11:01:05,139 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:01:05] "GET /api/reverse?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:01:09,380 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:01:09] "[32mPOST /configuracoes/localizacao HTTP/1.1[0m" 302 -
+2026-08-30 11:01:09,383 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:01:09] "GET /configuracoes HTTP/1.1" 200 -
+2026-08-30 11:01:11,647 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:01:11] "GET /dashboard HTTP/1.1" 200 -
+2026-08-30 11:01:13,299 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:01:13] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:01:17,030 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:01:17,030 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:01:17,030 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:01:17,032 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:01:17] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:01:17,046 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:01:17] "GET /api/precisao HTTP/1.1" 200 -
+2026-08-30 11:01:17,046 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:01:17,046 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:01:17,046 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:01:17,047 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:01:17] "GET /api/explicar/resumo HTTP/1.1" 200 -
+2026-08-30 11:01:17,796 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:01:17] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:02:17,734 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:02:17] "GET /radar HTTP/1.1" 200 -
+2026-08-30 11:02:17,795 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:02:17] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:02:17,800 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:02:17] "GET /api/precisao HTTP/1.1" 200 -
+2026-08-30 11:02:17,801 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:02:17] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:02:24,712 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:02:24] "GET /previsao HTTP/1.1" 200 -
+2026-08-30 11:02:24,762 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:02:24] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:02:25,471 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:02:25] "GET /alertas HTTP/1.1" 200 -
+2026-08-30 11:02:25,511 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:02:25] "GET /api/calibracao?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:02:25,511 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:02:25] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:02:26,417 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:02:26] "GET /dashboard HTTP/1.1" 200 -
+2026-08-30 11:02:26,478 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:02:26] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:02:26,479 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:02:26] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:02:26,511 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:02:26] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:02:26,512 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:02:26] "GET /api/precisao HTTP/1.1" 200 -
+2026-08-30 11:02:26,512 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:02:26,512 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:02:26,512 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:02:26,513 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:02:26] "GET /api/explicar/resumo HTTP/1.1" 200 -
+2026-08-30 11:03:08,295 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:08] "GET /dashboard HTTP/1.1" 200 -
+2026-08-30 11:03:08,346 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:08] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:03:08,348 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:08] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:03:08,380 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:08] "GET /api/precisao HTTP/1.1" 200 -
+2026-08-30 11:03:08,381 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:08] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:03:08,381 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:03:08,381 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:03:08,381 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:03:08,382 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:08] "GET /api/explicar/resumo HTTP/1.1" 200 -
+2026-08-30 11:03:33,717 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:33] "GET /previsao HTTP/1.1" 200 -
+2026-08-30 11:03:33,760 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:33] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:03:54,082 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:54] "GET /alertas HTTP/1.1" 200 -
+2026-08-30 11:03:54,129 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:54] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:03:54,129 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:54] "GET /api/calibracao?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:03:56,161 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:56] "GET /radar HTTP/1.1" 200 -
+2026-08-30 11:03:56,228 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:56] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:03:56,230 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:56] "GET /api/precisao HTTP/1.1" 200 -
+2026-08-30 11:03:57,076 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:57] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:03:57,344 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:57] "GET /previsao HTTP/1.1" 200 -
+2026-08-30 11:03:57,378 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:57] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:03:58,246 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:58] "GET /radar HTTP/1.1" 200 -
+2026-08-30 11:03:58,294 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:58] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:03:58,295 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:58] "GET /api/precisao HTTP/1.1" 200 -
+2026-08-30 11:03:58,296 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:03:58] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:04:05,791 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:04:05] "GET /dashboard HTTP/1.1" 200 -
+2026-08-30 11:04:05,841 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:04:05] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:04:05,842 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:04:05] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:04:05,856 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:04:05] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:04:05,857 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:04:05] "GET /api/precisao HTTP/1.1" 200 -
+2026-08-30 11:04:05,858 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:04:05,858 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:04:05,858 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:04:05,859 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:04:05] "GET /api/explicar/resumo HTTP/1.1" 200 -
+2026-08-30 11:04:18,433 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:04:18] "GET /previsao HTTP/1.1" 200 -
+2026-08-30 11:04:18,478 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:04:18] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:04:23,706 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:04:23] "GET /alertas HTTP/1.1" 200 -
+2026-08-30 11:04:23,744 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:04:23,744 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:04:23,745 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:04:23] "GET /api/calibracao?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:04:23,745 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:04:23,745 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:04:23] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:04:24,884 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:04:24] "GET /dashboard HTTP/1.1" 200 -
+2026-08-30 11:04:24,946 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:04:24] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:04:24,946 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:04:24] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:04:24,964 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:04:24] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:04:24,967 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:04:24] "GET /api/precisao HTTP/1.1" 200 -
+2026-08-30 11:04:24,968 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:04:24,968 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:04:24,968 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:04:24,968 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:04:24] "GET /api/explicar/resumo HTTP/1.1" 200 -
+2026-08-30 11:04:37,245 [RRFS] INFO: Job BG: atualizando 1 local(is)
+2026-08-30 11:04:37,246 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:04:37,246 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:04:37,246 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:06:07,297 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:06:07] "GET /dashboard HTTP/1.1" 200 -
+2026-08-30 11:06:07,345 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:06:07] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:06:07,345 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:06:07] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:06:07,376 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:06:07] "GET /api/precisao HTTP/1.1" 200 -
+2026-08-30 11:06:07,376 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:06:07,376 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:06:07,376 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:06:07,377 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:06:07] "GET /api/explicar/resumo HTTP/1.1" 200 -
+2026-08-30 11:06:08,200 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:06:08] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:08:07,382 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:08:07] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:08:37,417 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:08:37,417 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:08:37,417 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:08:37,418 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:08:37] "GET /api/explicar/resumo HTTP/1.1" 200 -
+2026-08-30 11:08:40,348 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:08:40,348 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:08:40,348 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:08:40,349 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:08:40] "GET /api/explicar/resumo HTTP/1.1" 200 -
+2026-08-30 11:08:41,750 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:08:41,750 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:08:41,750 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:08:41,752 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:08:41] "GET /api/explicar/resumo HTTP/1.1" 200 -
+2026-08-30 11:08:43,973 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:08:43,973 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:08:43,973 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:08:43,975 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:08:43] "GET /api/explicar/resumo HTTP/1.1" 200 -
+2026-08-30 11:08:46,750 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:08:46,750 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:08:46,750 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:08:46,751 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:08:46] "GET /api/explicar/resumo HTTP/1.1" 200 -
+2026-08-30 11:08:53,425 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:08:53,425 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:08:53,425 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:08:53,425 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:08:53] "GET /api/explicar/resumo HTTP/1.1" 200 -
+2026-08-30 11:09:18,775 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:09:18] "GET /previsao HTTP/1.1" 200 -
+2026-08-30 11:09:18,808 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:09:18] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:09:25,326 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:09:25] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:09:26,378 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:09:26] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:09:33,151 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:09:33] "GET /radar HTTP/1.1" 200 -
+2026-08-30 11:09:33,214 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:09:33,215 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:09:33] "GET /api/precisao HTTP/1.1" 200 -
+2026-08-30 11:09:33,215 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:09:33,215 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:09:33,215 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:09:33] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:09:34,073 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:09:34] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:09:37,245 [RRFS] INFO: Job BG: atualizando 1 local(is)
+2026-08-30 11:09:37,246 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:09:37,247 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:09:37,247 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:10:11,966 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:10:11] "GET /previsao HTTP/1.1" 200 -
+2026-08-30 11:10:12,008 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:10:12] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:10:14,967 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:10:14] "GET /alertas HTTP/1.1" 200 -
+2026-08-30 11:10:15,006 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:10:15] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:10:15,007 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:10:15] "GET /api/calibracao?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:10:16,484 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:10:16] "GET /dashboard HTTP/1.1" 200 -
+2026-08-30 11:10:16,541 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:10:16] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:10:16,541 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:10:16] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:10:16,573 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:10:16,574 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:10:16] "GET /api/precisao HTTP/1.1" 200 -
+2026-08-30 11:10:16,574 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:10:16,574 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:10:16] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:10:16,575 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:10:16,575 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:10:16] "GET /api/explicar/resumo HTTP/1.1" 200 -
+2026-08-30 11:12:17,368 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:12:17] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:14:16,528 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:14:16] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:14:37,245 [RRFS] INFO: Job BG: atualizando 1 local(is)
+2026-08-30 11:14:38,268 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:14:38,268 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:14:38,268 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:15:16,530 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:15:16] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:15:16,530 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:15:16] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:15:16,544 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:15:16,545 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:15:16,545 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:15:16] "GET /api/precisao HTTP/1.1" 200 -
+2026-08-30 11:15:16,545 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:15:16,546 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:15:16] "GET /api/explicar/resumo HTTP/1.1" 200 -
+2026-08-30 11:15:17,345 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:15:17] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:16:16,769 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:16:16] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:18:17,660 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:18:17] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:19:37,245 [RRFS] INFO: Job BG: atualizando 1 local(is)
+2026-08-30 11:19:37,246 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:19:37,246 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:19:37,246 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:20:16,530 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:20:16] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:20:17,536 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:20:17] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:20:17,687 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:20:17] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:20:17,711 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:20:17,711 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:20:17] "GET /api/precisao HTTP/1.1" 200 -
+2026-08-30 11:20:17,711 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:20:17,712 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:20:17,712 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:20:17] "GET /api/explicar/resumo HTTP/1.1" 200 -
+2026-08-30 11:20:18,547 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:20:18] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:21:47,708 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:21:47] "GET /dashboard HTTP/1.1" 200 -
+2026-08-30 11:21:47,833 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:21:47] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:21:47,833 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:21:47] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:21:47,856 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:21:47] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:21:47,859 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:21:47] "GET /api/precisao HTTP/1.1" 200 -
+2026-08-30 11:21:47,859 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:21:47,859 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:21:47,859 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:21:47,860 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:21:47] "GET /api/explicar/resumo HTTP/1.1" 200 -
+2026-08-30 11:21:49,508 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:21:49] "GET /dashboard HTTP/1.1" 200 -
+2026-08-30 11:21:49,581 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:21:49] "GET /api/alertas?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:21:49,581 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:21:49] "GET /api/meteo?lat=-27.703108&lon=-49.292362 HTTP/1.1" 200 -
+2026-08-30 11:21:49,599 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:21:49] "GET /api/radar HTTP/1.1" 200 -
+2026-08-30 11:21:49,603 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:21:49] "GET /api/precisao HTTP/1.1" 200 -
+2026-08-30 11:21:49,603 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:21:49,603 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:21:49,603 [RRFS.Alertas] INFO: Alerta tempestade descartado (concordância: 0%, min: 33%)
+2026-08-30 11:21:49,604 [werkzeug] INFO: 127.0.0.1 - - [30/Aug/2026 11:21:49] "GET /api/explicar/resumo HTTP/1.1" 200 -

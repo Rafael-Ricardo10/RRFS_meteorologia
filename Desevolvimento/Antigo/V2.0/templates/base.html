@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}RRFS Meteorologia{% endblock %}</title>
+<style>
+/* ═══════════════════════════════════════════════════════
+   RRFS Meteorologia — Design System Dark
+═══════════════════════════════════════════════════════ */
+:root {
+  --bg:        #0d1117;
+  --bg2:       #161b22;
+  --bg3:       #21262d;
+  --bg4:       #2d333b;
+  --border:    #30363d;
+  --text:      #e6edf3;
+  --text2:     #8b949e;
+  --text3:     #6e7681;
+  --accent:    #1f6feb;
+  --accent2:   #388bfd;
+  --success:   #3fb950;
+  --warning:   #d29922;
+  --danger:    #f85149;
+  --extreme:   #ff6b6b;
+  --info:      #58a6ff;
+  --purple:    #bc8cff;
+  --radius:    8px;
+  --radius-sm: 4px;
+  --shadow:    0 4px 24px rgba(0,0,0,.45);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,.3);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 14px; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+               Oxygen, Ubuntu, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+/* ── Navbar ─────────────────────────────────────────────────────── */
+.navbar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 54px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  gap: 12px;
+}
+
+.navbar-brand {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--info);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.navbar-brand .logo-icon { font-size: 22px; }
+
+.navbar-links {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+
+.nav-link {
+  color: var(--text2);
+  text-decoration: none;
+  padding: 5px 11px;
+  border-radius: var(--radius-sm);
+  transition: all .15s;
+  font-size: 13px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.nav-link:hover { background: var(--bg3); color: var(--text); }
+.nav-link.active { background: var(--bg3); color: var(--text); }
+
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+/* ── Badges ─────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.badge-admin    { background: var(--accent);              color: #fff; }
+.badge-ativo    { background: rgba(63,185,80,.2);         color: var(--success); }
+.badge-pendente { background: rgba(210,153,34,.2);        color: var(--warning); }
+.badge-suspenso { background: rgba(248,81,73,.2);         color: var(--danger); }
+.badge-rejeitado{ background: rgba(139,148,158,.15);      color: var(--text2); }
+
+.badge-alerta {
+  background: var(--danger);
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  animation: pulse-badge 1.8s ease-in-out infinite;
+  vertical-align: middle;
+}
+@keyframes pulse-badge {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: .7; transform: scale(.95); }
+}
+
+/* ── Container ──────────────────────────────────────────────────── */
+.container    { max-width: 1440px; margin: 0 auto; padding: 20px 16px; }
+.container-sm { max-width: 460px;  margin: 0 auto; padding: 20px 16px; }
+
+/* ── Cards ──────────────────────────────────────────────────────── */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+}
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+/* ── Grid ───────────────────────────────────────────────────────── */
+.grid   { display: grid; gap: 14px; }
+.grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.grid-3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.grid-4 { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+
+/* ── Botões ─────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 15px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: filter .15s, background .15s;
+  background: var(--bg3);
+  color: var(--text);
+  white-space: nowrap;
+  user-select: none;
+}
+.btn:hover      { filter: brightness(1.18); }
+.btn:active     { filter: brightness(.9); }
+.btn-primary    { background: var(--accent);  border-color: var(--accent);  color: #fff; }
+.btn-success    { background: var(--success); border-color: var(--success); color: #fff; }
+.btn-danger     { background: var(--danger);  border-color: var(--danger);  color: #fff; }
+.btn-warning    { background: var(--warning); border-color: var(--warning); color: #fff; }
+.btn-info       { background: var(--info);    border-color: var(--info);    color: #fff; }
+.btn-sm         { padding: 4px 10px; font-size: 12px; }
+.btn-block      { width: 100%; }
+.btn:disabled   { opacity: .45; cursor: not-allowed; }
+
+/* ── Forms ──────────────────────────────────────────────────────── */
+.form-group   { margin-bottom: 14px; }
+.form-label   { display: block; margin-bottom: 5px; color: var(--text2); font-size: 12px; font-weight: 500; }
+.form-control {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 8px 11px;
+  font-size: 13px;
+  transition: border-color .15s, box-shadow .15s;
+  outline: none;
+  font-family: inherit;
+}
+.form-control:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(31,111,235,.15);
+}
+.form-control::placeholder { color: var(--text3); }
+select.form-control { cursor: pointer; }
+textarea.form-control { resize: vertical; min-height: 80px; }
+
+/* ── Alert boxes (clima) ────────────────────────────────────────── */
+.alert-box {
+  border-radius: var(--radius);
+  padding: 11px 14px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-left: 4px solid;
+  transition: opacity .2s;
+}
+.alert-box:hover { opacity: .92; }
+.alert-EXTREMO { background: rgba(255,107,107,.08); border-color: var(--extreme); }
+.alert-PERIGO  { background: rgba(248,81,73,.08);   border-color: var(--danger); }
+.alert-ALERTA  { background: rgba(210,153,34,.08);  border-color: var(--warning); }
+.alert-ATENCAO { background: rgba(88,166,255,.08);  border-color: var(--info); }
+.alert-INFO    { background: rgba(63,185,80,.08);   border-color: var(--success); }
+
+.alert-icon    { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.alert-title   { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+.alert-desc    { color: var(--text2); font-size: 12px; line-height: 1.5; }
+.alert-hora    { color: var(--text3); font-size: 11px; margin-top: 4px; }
+
+/* ── Flash messages ──────────────────────────────────────────────── */
+.flash {
+  padding: 10px 15px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.flash-success { background: rgba(63,185,80,.12);  border: 1px solid rgba(63,185,80,.4); }
+.flash-error   { background: rgba(248,81,73,.12);  border: 1px solid rgba(248,81,73,.4); }
+.flash-info    { background: rgba(88,166,255,.12); border: 1px solid rgba(88,166,255,.4); }
+
+/* ── Tabela ─────────────────────────────────────────────────────── */
+.table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.table th {
+  padding: 9px 12px;
+  text-align: left;
+  color: var(--text2);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.table tbody tr:hover td { background: var(--bg3); }
+.table tbody tr:last-child td { border-bottom: none; }
+
+/* ── Tabs ───────────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+  overflow-x: auto;
+}
+.tab-btn {
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 13px;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.tab-btn:hover  { color: var(--text); }
+.tab-btn.active { color: var(--accent2); border-bottom-color: var(--accent2); }
+.tab-content    { display: none; }
+.tab-content.active { display: block; }
+
+/* ── Spinner ────────────────────────────────────────────────────── */
+.spinner {
+  width: 30px; height: 30px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent2);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  margin: 0 auto;
+}
+.spinner-sm {
+  width: 16px; height: 16px;
+  border-width: 2px;
+  display: inline-block;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Loader overlay ─────────────────────────────────────────────── */
+#loader {
+  position: fixed;
+  inset: 0;
+  background: rgba(13,17,23,.75);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  flex-direction: column;
+  gap: 14px;
+}
+#loader p { color: var(--text2); font-size: 13px; }
+
+/* ── Progress bar ───────────────────────────────────────────────── */
+.progress-wrap {
+  height: 4px;
+  background: var(--bg3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width .3s ease;
+}
+
+/* ── Tooltip ────────────────────────────────────────────────────── */
+[data-tip] { position: relative; cursor: help; }
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg4);
+  color: var(--text);
+  padding: 5px 9px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .15s;
+  border: 1px solid var(--border);
+  z-index: 50;
+  max-width: 240px;
+  white-space: normal;
+  text-align: center;
+}
+[data-tip]:hover::after { opacity: 1; }
+
+/* ── Cores de temperatura ───────────────────────────────────────── */
+.t-gelado  { color: #74c0fc; }
+.t-frio    { color: #a5d8ff; }
+.t-fresco  { color: #94d82d; }
+.t-agrada  { color: var(--success); }
+.t-quente  { color: var(--warning); }
+.t-muito   { color: #fd7e14; }
+.t-extremo { color: var(--danger); }
+
+/* ── Utilitários ────────────────────────────────────────────────── */
+.text-muted   { color: var(--text2); }
+.text-small   { font-size: 12px; }
+.text-xs      { font-size: 11px; }
+.text-center  { text-align: center; }
+.mt-4  { margin-top:  4px; }
+.mt-8  { margin-top:  8px; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mb-8  { margin-bottom:  8px; }
+.mb-12 { margin-bottom: 12px; }
+.mb-16 { margin-bottom: 16px; }
+.flex  { display: flex; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.gap-8  { gap:  8px; }
+.gap-12 { gap: 12px; }
+.flex-1 { flex: 1; }
+
+/* ── Modal de Explicação ────────────────────────────────────────── */
+#modal-explicacao {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0,0,0,.72);
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+#modal-explicacao.open { display: flex; }
+
+.modal-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-width: 700px;
+  width: 100%;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  background: var(--bg2);
+  z-index: 1;
+}
+.modal-header-title { font-weight: 700; font-size: 15px; }
+.modal-close {
+  background: none; border: none; color: var(--text2);
+  cursor: pointer; font-size: 20px; padding: 0 4px;
+  line-height: 1; border-radius: var(--radius-sm);
+  transition: color .15s, background .15s;
+}
+.modal-close:hover { color: var(--text); background: var(--bg3); }
+.modal-tabs {
+  padding: 10px 20px 0;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.modal-body { padding: 18px 20px; flex: 1; }
+.modal-footer {
+  padding: 10px 20px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text2);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Fator de alerta (no modal) ─────────────────────────────────── */
+.fator-card {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  background: var(--bg3);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--border);
+}
+.fator-card.impacto-EXTREMO  { border-color: var(--extreme); }
+.fator-card.impacto-CRÍTICO  { border-color: var(--extreme); }
+.fator-card.impacto-ALTO     { border-color: var(--danger); }
+.fator-card.impacto-MODERADO { border-color: var(--warning); }
+.fator-card.impacto-CONFIRMAÇÃO { border-color: var(--info); }
+.fator-nome    { font-weight: 600; font-size: 13px; margin-bottom: 5px; }
+.fator-impacto { font-size: 10px; font-weight: 700; padding: 1px 7px;
+                 border-radius: 20px; background: var(--bg4); }
+.fator-simples { font-size: 13px; margin: 6px 0; line-height: 1.6; }
+.fator-tecnico {
+  font-size: 11px; color: var(--text2); font-family: monospace;
+  background: var(--bg2); padding: 7px 10px; border-radius: var(--radius-sm);
+  line-height: 1.6;
+}
+
+/* ── Confiança / horizonte ──────────────────────────────────────── */
+.confianca-bar {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--bg3);
+  overflow: hidden;
+  margin-top: 4px;
+}
+.confianca-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .4s;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .navbar { padding: 0 12px; }
+  .navbar-brand { font-size: 14px; }
+  .navbar-links .nav-link span:not(.badge-alerta) { display: none; }
+  .container { padding: 14px 10px; }
+  .card { padding: 14px; }
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .modal-box { max-height: 95vh; }
+  .nav-user span:not(.badge-admin) { display: none; }
+}
+</style>
+{% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<!-- ── Loader global ─────────────────────────────────────────────────────── -->
+<div id="loader">
+  <div class="spinner"></div>
+  <p>Carregando...</p>
+</div>
+
+<!-- ── Navbar ────────────────────────────────────────────────────────────── -->
+{% if current_user %}
+<nav class="navbar">
+  <a class="navbar-brand" href="/dashboard">
+    <span class="logo-icon">🌦️</span>
+    <span>RRFS Meteorologia</span>
+  </a>
+
+  <div class="navbar-links">
+    <a class="nav-link {% if request_path=='/dashboard' %}active{% endif %}"
+       href="/dashboard">
+      <span>🏠</span><span>Dashboard</span>
+    </a>
+    <a class="nav-link {% if request_path=='/radar' %}active{% endif %}"
+       href="/radar">
+      <span>📡</span><span>Radar</span>
+    </a>
+    <a class="nav-link {% if request_path=='/previsao' %}active{% endif %}"
+       href="/previsao">
+      <span>📅</span><span>Previsão</span>
+    </a>
+    <a class="nav-link {% if request_path=='/alertas' %}active{% endif %}"
+       href="/alertas">
+      <span>⚠️</span><span>Alertas</span>
+      {% if n_alertas > 0 %}
+        <span class="badge-alerta">{{ n_alertas }}</span>
+      {% endif %}
+    </a>
+    <a class="nav-link {% if request_path=='/configuracoes' %}active{% endif %}"
+       href="/configuracoes">
+      <span>⚙️</span><span>Config</span>
+    </a>
+    {% if current_user.perfil == 'admin' %}
+    <a class="nav-link {% if request_path=='/admin' %}active{% endif %}"
+       href="/admin">
+      <span>🛡️</span><span>Admin</span>
+    </a>
+    {% endif %}
+  </div>
+
+  <div class="nav-user">
+    {% if current_user.perfil == 'admin' %}
+      <span class="badge badge-admin">ADMIN</span>
+    {% endif %}
+    <span>{{ current_user.nome.split()[0] }}</span>
+    <a class="btn btn-sm" href="/logout">Sair</a>
+  </div>
+</nav>
+{% endif %}
+
+<!-- ── Flash messages ─────────────────────────────────────────────────────── -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div style="padding: 12px 16px 0; max-width:1440px; margin:0 auto">
+  {% for cat, msg in messages %}
+  <div class="flash flash-{{ cat }}">
+    <span>{% if cat=='success' %}✅{% elif cat=='error' %}❌{% else %}ℹ️{% endif %}</span>
+    {{ msg }}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<!-- ── Alerta de senha padrão ─────────────────────────────────────────────── -->
+{% if current_user and current_user.get('senha_padrao') %}
+<div style="background:rgba(210,153,34,.12);border-bottom:1px solid rgba(210,153,34,.3);
+            padding:8px 20px;font-size:12px;display:flex;
+            align-items:center;justify-content:center;gap:10px">
+  ⚠️ Você está usando a senha padrão.
+  <a href="/configuracoes" style="color:var(--warning);font-weight:600">
+    Altere agora →
+  </a>
+</div>
+{% endif %}
+
+<!-- ── Conteúdo da página ─────────────────────────────────────────────────── -->
+{% block content %}{% endblock %}
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL DE EXPLICAÇÃO GLOBAL
+══════════════════════════════════════════════════════════════════════════════ -->
+<div id="modal-explicacao" role="dialog" aria-modal="true">
+  <div class="modal-box">
+
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="modal-header-title" id="modal-titulo">🔍 Explicação</div>
+      <button class="modal-close" onclick="fecharModal()"
+              aria-label="Fechar">✕</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="modal-tabs">
+      <div class="tabs" style="margin-bottom:0;border:none">
+        <button class="tab-btn active" data-group="exp" data-tab="exp-simples">
+          💬 Fácil
+        </button>
+        <button class="tab-btn" data-group="exp" data-tab="exp-tecnico">
+          🔬 Técnico
+        </button>
+        <button class="tab-btn" data-group="exp" data-tab="exp-fatores">
+          📊 Fatores
+        </button>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="modal-body">
+
+      <!-- Aba fácil -->
+      <div id="exp-simples" class="tab-content active" data-group="exp">
+        <div id="exp-simples-txt"
+             style="font-size:14px;line-height:1.85;color:var(--text)"></div>
+      </div>
+
+      <!-- Aba técnico -->
+      <div id="exp-tecnico" class="tab-content" data-group="exp">
+        <div id="exp-tecnico-txt"
+             style="font-family:monospace;font-size:12px;line-height:1.9;
+                    color:var(--text2);background:var(--bg3);
+                    padding:14px;border-radius:var(--radius);
+                    white-space:pre-wrap;word-break:break-word"></div>
+      </div>
+
+      <!-- Aba fatores -->
+      <div id="exp-fatores" class="tab-content" data-group="exp">
+        <div id="exp-fatores-lista"></div>
+      </div>
+
+    </div><!-- /modal-body -->
+
+    <!-- Footer -->
+    <div class="modal-footer">
+      <span id="modal-confianca"></span>
+      <span id="modal-janela"></span>
+    </div>
+
+  </div><!-- /modal-box -->
+</div><!-- /modal-explicacao -->
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     SCRIPTS GLOBAIS
+══════════════════════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ── Loader ──────────────────────────────────────────────────────────────── */
+const _loader = document.getElementById('loader');
+function showLoader(txt='Carregando...') {
+  _loader.querySelector('p').textContent = txt;
+  _loader.style.display = 'flex';
+}
+function hideLoader() { _loader.style.display = 'none'; }
+
+/* ── Tabs (sistema genérico) ─────────────────────────────────────────────── */
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  const grp = btn.dataset.group || '_';
+  const tab = btn.dataset.tab;
+  if (!tab) return;
+
+  document.querySelectorAll(`.tab-btn[data-group="${grp}"]`)
+    .forEach(b => b.classList.remove('active'));
+  document.querySelectorAll(`.tab-content[data-group="${grp}"]`)
+    .forEach(c => c.classList.remove('active'));
+
+  btn.classList.add('active');
+  const el = document.getElementById(tab);
+  if (el) el.classList.add('active');
+});
+
+/* ── Modal de Explicação ─────────────────────────────────────────────────── */
+const _modal = document.getElementById('modal-explicacao');
+
+function abrirModal(titulo, dados) {
+  if (!dados) return;
+
+  document.getElementById('modal-titulo').textContent = titulo;
+
+  /* Aba fácil */
+  const simples = dados.simples || 'Sem explicação disponível.';
+  document.getElementById('exp-simples-txt').innerHTML =
+    simples.split('\n').map(p => p.trim() ? `<p style="margin-bottom:10px">${p}</p>` : '').join('');
+
+  /* Aba técnico */
+  document.getElementById('exp-tecnico-txt').textContent =
+    dados.tecnico || 'Sem dados técnicos.';
+
+  /* Aba fatores */
+  const fatores  = Array.isArray(dados.fatores) ? dados.fatores : [];
+  const fLista   = document.getElementById('exp-fatores-lista');
+  if (fatores.length === 0) {
+    fLista.innerHTML = `<p class="text-muted text-small" style="padding:8px 0">
+      Nenhum fator específico registrado para este evento.</p>`;
+  } else {
+    fLista.innerHTML = fatores.map(f => {
+      const imp = (f.impacto || '').toUpperCase();
+      const corMap = {
+        'EXTREMO':     'var(--extreme)',
+        'CRÍTICO':     'var(--extreme)',
+        'ALTO':        'var(--danger)',
+        'MODERADO':    'var(--warning)',
+        'CONFIRMAÇÃO': 'var(--info)',
+      };
+      const cor = corMap[imp] || 'var(--text2)';
+      return `
+        <div class="fator-card impacto-${imp}">
+          <div style="display:flex;justify-content:space-between;
+                      align-items:flex-start;margin-bottom:6px;gap:8px">
+            <div class="fator-nome">${f.nome || ''}</div>
+            <span class="fator-impacto" style="color:${cor};flex-shrink:0">
+              ${imp}
+            </span>
+          </div>
+          <div class="fator-simples">${f.simples || ''}</div>
+          ${f.tecnico ? `<div class="fator-tecnico">${f.tecnico}</div>` : ''}
+        </div>`;
+    }).join('');
+  }
+
+  /* Footer */
+  document.getElementById('modal-confianca').textContent =
+    dados.confianca ? `📊 ${dados.confianca}` : '';
+  document.getElementById('modal-janela').textContent =
+    dados.janela ? `⏰ ${dados.janela}` : '';
+
+  /* Activa aba fácil */
+  document.querySelectorAll('.tab-btn[data-group="exp"]')
+    .forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content[data-group="exp"]')
+    .forEach(c => c.classList.remove('active'));
+  document.querySelector('.tab-btn[data-tab="exp-simples"]').classList.add('active');
+  document.getElementById('exp-simples').classList.add('active');
+
+  _modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function fecharModal() {
+  _modal.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* Fecha ao clicar no backdrop */
+_modal.addEventListener('click', e => { if (e.target === _modal) fecharModal(); });
+/* Fecha com ESC */
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
+
+/* ── Funções helper de explicação (usadas em qualquer página) ────────────── */
+async function explicarCondicaoAtual() {
+  showLoader('Analisando condições...');
+  try {
+    const d = await fetch('/api/explicar/condicao-atual').then(r => r.json());
+    abrirModal(`${d.icone || '🌡️'} Condição Atual — ${d.condicao || ''}`, d);
+  } catch { alert('Erro ao carregar explicação.'); }
+  hideLoader();
+}
+
+async function explicarHora(indice, label) {
+  showLoader('Analisando hora...');
+  try {
+    const d = await fetch(`/api/explicar/hora/${indice}`).then(r => r.json());
+    abrirModal(`${d.icone || '🕐'} Previsão ${label || d.hora || ''}`, d);
+  } catch { alert('Erro ao carregar explicação.'); }
+  hideLoader();
+}
+
+async function explicarAlerta(alertaObj) {
+  showLoader('Analisando alerta...');
+  try {
+    const d = await fetch('/api/explicar/alerta', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(alertaObj),
+    }).then(r => r.json());
+    const tipo = (alertaObj.tipo || '').replace(/_/g, ' ').toUpperCase();
+    abrirModal(`${alertaObj.icone || '⚠️'} ${tipo}`, d);
+  } catch { alert('Erro ao carregar explicação.'); }
+  hideLoader();
+}
+
+async function explicarDia(indice, label) {
+  showLoader('Analisando dia...');
+  try {
+    const d = await fetch(`/api/explicar/dia/${indice}`).then(r => r.json());
+    abrirModal(`📅 ${label || 'Previsão diária'}`, d);
+  } catch { alert('Erro ao carregar explicação.'); }
+  hideLoader();
+}
+
+async function explicarResumo() {
+  showLoader('Analisando situação geral...');
+  try {
+    const d = await fetch('/api/explicar/resumo').then(r => r.json());
+    abrirModal(`${d.emoji || '📊'} Situação Geral — ${d.tom || ''}`, d);
+  } catch { alert('Erro ao carregar explicação.'); }
+  hideLoader();
+}
+
+/* ── Utilitários ─────────────────────────────────────────────────────────── */
+function tempCor(t) {
+  if (t === null || t === undefined) return 'var(--text2)';
+  if (t <= 0)  return '#74c0fc';
+  if (t <= 10) return '#a5d8ff';
+  if (t <= 18) return '#94d82d';
+  if (t <= 26) return 'var(--success)';
+  if (t <= 33) return 'var(--warning)';
+  if (t <= 38) return '#fd7e14';
+  return 'var(--danger)';
+}
+
+function formatHora(iso) {
+  return iso ? iso.substr(11, 5) : '';
+}
+
+function formatData(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + (iso.length === 10 ? 'T12:00:00' : ''));
+  const dias  = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  return `${dias[d.getDay()]}, ${d.getDate()} ${meses[d.getMonth()]}`;
+}
+
+function formatDataCurta(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T12:00:00');
+  return `${d.getDate()}/${d.getMonth()+1}`;
+}
+</script>
+
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,25 @@
+RRFS_Meteorologia/
+├── dados/
+│   ├── raw/
+│   ├── processed/
+│   ├── models/
+│   └── cache/
+├── modulos/
+│   ├── __init__.py
+│   ├── api_manager.py
+│   ├── data_processor.py
+│   ├── prediction_engine.py
+│   ├── ia_agent.py
+│   ├── database.py
+│   ├── cache_manager.py
+│   └── utils.py
+├── templates/
+│   ├── index.html
+│   ├── dashboard.html
+│   ├── admin.html
+│   └── static/
+│       ├── style.css
+│       └── script.js
+├── app.py
+├── requirements.txt
+└── config.py

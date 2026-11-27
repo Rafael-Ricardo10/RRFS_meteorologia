@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}Admin — RRFS{% endblock %}
+{% block content %}
+<div class="container">
+  <h2 style="margin-bottom:20px">🛡️ Painel Administrativo</h2>
+
+  <!-- Stats rápidas -->
+  <div class="grid grid-4" style="margin-bottom:20px">
+    <div class="card" style="text-align:center">
+      <div class="stat-big" style="font-size:36px">{{ stats.total }}</div>
+      <div class="stat-label">Total Usuários</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div class="stat-big" style="font-size:36px;color:var(--success)">{{ stats.ativos }}</div>
+      <div class="stat-label">Ativos</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div class="stat-big" style="font-size:36px;color:var(--warning)">{{ stats.pendentes }}</div>
+      <div class="stat-label">Pendentes</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div class="stat-big" style="font-size:36px;color:var(--danger)">{{ stats.suspensos }}</div>
+      <div class="stat-label">Suspensos</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" data-group="adm" data-tab="tab-usuarios">
+      👥 Usuários
+      {% if stats.pendentes > 0 %}
+      <span class="badge-alerta">{{ stats.pendentes }}</span>
+      {% endif %}
+    </button>
+    <button class="tab-btn" data-group="adm" data-tab="tab-sistema">🖥️ Sistema</button>
+    <button class="tab-btn" data-group="adm" data-tab="tab-cache">💾 Cache</button>
+  </div>
+
+  <!-- Usuários -->
+  <div id="tab-usuarios" class="tab-content active" data-group="adm">
+    <div class="card">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Usuário</th>
+            <th>Nome</th>
+            <th>E-mail</th>
+            <th>Status</th>
+            <th>Criado em</th>
+            <th>Último Login</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for u in usuarios %}
+        <tr>
+          <td>
+            <strong>{{ u.username }}</strong>
+            {% if u.perfil == 'admin' %}<span class="badge-admin" style="margin-left:6px">ADMIN</span>{% endif %}
+            {% if u.senha_padrao %}<span style="font-size:11px;color:var(--warning)"> ⚠️senha padrão</span>{% endif %}
+          </td>
+          <td>{{ u.nome }}</td>
+          <td style="color:var(--text2)">{{ u.email }}</td>
+          <td><span class="badge badge-{{ u.status }}">{{ u.status.upper() }}</span></td>
+          <td style="color:var(--text2);font-size:12px">{{ u.criado_em[:10] if u.criado_em else '-' }}</td>
+          <td style="color:var(--text2);font-size:12px">{{ u.ultimo_login[:16] if u.ultimo_login else '-' }}</td>
+          <td>
+            {% if u.username != 'admin' %}
+            <div style="display:flex;gap:4px;flex-wrap:wrap">
+              {% if u.status == 'pendente' %}
+              <form method="post" action="/admin/usuario/{{ u.username }}/aprovar" style="display:inline">
+                <button class="btn btn-success btn-sm" type="submit">✅ Aprovar</button>
+              </form>
+              <form method="post" action="/admin/usuario/{{ u.username }}/rejeitar" style="display:inline">
+                <button class="btn btn-danger btn-sm" type="submit">❌ Rejeitar</button>
+              </form>
+              {% elif u.status == 'ativo' %}
+              <form method="post" action="/admin/usuario/{{ u.username }}/suspender" style="display:inline">
+                <button class="btn btn-warning btn-sm" type="submit">🔇 Suspender</button>
+              </form>
+              {% elif u.status in ('suspenso','rejeitado') %}
+              <form method="post" action="/admin/usuario/{{ u.username }}/reativar" style="display:inline">
+                <button class="btn btn-success btn-sm" type="submit">🔓 Reativar</button>
+              </form>
+              {% endif %}
+              <form method="post" action="/admin/usuario/{{ u.username }}/excluir"
+                    onsubmit="return confirm('Excluir {{ u.username }}?')" style="display:inline">
+                <button class="btn btn-danger btn-sm" type="submit">🗑️</button>
+              </form>
+            </div>
+            {% else %}
+            <span style="color:var(--text2);font-size:12px">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Sistema -->
+  <div id="tab-sistema" class="tab-content" data-group="adm">
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="card-title">💻 Recursos do Sistema</div>
+        <div id="sys-stats">
+          <div class="spinner"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📋 Logs Recentes</div>
+        <div id="logs-recentes" style="font-family:monospace;font-size:11px;
+             max-height:300px;overflow-y:auto;color:var(--text2)">
+          Carregando...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cache -->
+  <div id="tab-cache" class="tab-content" data-group="adm">
+    <div class="card">
+      <div class="card-title">💾 Estatísticas do Cache</div>
+      <div id="cache-stats">
+        <div class="spinner"></div>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:8px">
+        <form method="post" action="/admin/cache/limpar">
+          <button class="btn btn-warning" type="submit">🧹 Limpar Cache</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function carregarSistema() {
+  const dados = await fetch('/api/admin/sistema').then(r=>r.json()).catch(()=>({}));
+  const el = document.getElementById('sys-stats');
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <div style="font-size:12px;color:var(--text2)">CPU</div>
+        <div style="font-size:20px;font-weight:700">${dados.cpu ?? '--'}%</div>
+        <div style="height:6px;background:var(--bg3);border-radius:3px;margin-top:4px">
+          <div style="height:100%;background:var(--accent);border-radius:3px;width:${dados.cpu??0}%"></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--text2)">Memória</div>
+        <div style="font-size:20px;font-weight:700">${dados.mem_mb ?? '--'} MB</div>
+        <div style="height:6px;background:var(--bg3);border-radius:3px;margin-top:4px">
+          <div style="height:100%;background:var(--success);border-radius:3px;
+               width:${Math.min((dados.mem_mb/400)*100,100).toFixed(0)}%"></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--text2)">Uptime</div>
+        <div style="font-size:16px;font-weight:600">${dados.uptime ?? '--'}</div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--text2)">Threads</div>
+        <div style="font-size:16px;font-weight:600">${dados.threads ?? '--'}</div>
+      </div>
+    </div>`;
+}
+
+async function carregarCache() {
+  const dados = await fetch('/api/admin/cache').then(r=>r.json()).catch(()=>({}));
+  const el = document.getElementById('cache-stats');
+  el.innerHTML = `
+    <div class="grid grid-4" style="margin-bottom:12px">
+      <div><div style="color:var(--text2);font-size:12px">Itens</div>
+        <div style="font-size:20px;font-weight:700">${dados.itens ?? 0}</div></div>
+      <div><div style="color:var(--text2);font-size:12px">Hits</div>
+        <div style="font-size:20px;font-weight:700;color:var(--success)">${dados.hits ?? 0}</div></div>
+      <div><div style="color:var(--text2);font-size:12px">Misses</div>
+        <div style="font-size:20px;font-weight:700;color:var(--warning)">${dados.misses ?? 0}</div></div>
+      <div><div style="color:var(--text2);font-size:12px">Evictions</div>
+        <div style="font-size:20px;font-weight:700;color:var(--danger)">${dados.evictions ?? 0}</div></div>
+    </div>
+    <div style="font-size:12px;color:var(--text2)">
+      Taxa de acerto: <strong style="color:var(--text)">
+      ${dados.hits+dados.misses > 0 ? ((dados.hits/(dados.hits+dados.misses))*100).toFixed(1) : 0}%
+      </strong>
+    </div>`;
+}
+
+carregarSistema();
+carregarCache();
+setInterval(carregarSistema, 10000);
+setInterval(carregarCache, 15000);
+</script>
+{% endblock %}

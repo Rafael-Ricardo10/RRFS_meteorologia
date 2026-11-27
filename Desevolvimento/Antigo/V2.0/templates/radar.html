@@ -1,0 +1,1269 @@
+{% extends "base.html" %}
+{% block title %}Radar & Mapa — RRFS{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+.radar-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 12px;
+  height: calc(100vh - 130px);
+  min-height: 500px;
+}
+@media (max-width: 900px) {
+  .radar-layout { grid-template-columns: 1fr; height: auto; }
+  #mapa-radar   { height: 60vw; min-height: 320px; }
+}
+
+#mapa-radar {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  width: 100%;
+  height: 100%;
+}
+
+.radar-painel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  max-height: calc(100vh - 130px);
+}
+
+.radar-ctrl {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.frame-timeline {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  flex: 1;
+  min-width: 100px;
+  overflow: hidden;
+}
+.frame-pip {
+  height: 6px;
+  flex: 1;
+  background: var(--bg3);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background .1s;
+}
+.frame-pip.atual    { background: var(--accent2); }
+.frame-pip.passado  { background: var(--text3); }
+.frame-pip.nowcast  { background: var(--warning); }
+.frame-pip:hover    { filter: brightness(1.5); }
+
+.frame-label {
+  font-size: 11px;
+  color: var(--text2);
+  white-space: nowrap;
+  min-width: 130px;
+  text-align: right;
+}
+
+/* ── Aviso de zoom ─────────────────────────────────────── */
+#zoom-aviso {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  background: rgba(13,17,23,.92);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--warning);
+  pointer-events: none;
+  max-width: 280px;
+}
+#zoom-aviso.visivel { display: block; }
+
+.legenda-wrap {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.legenda-grad {
+  height: 12px;
+  border-radius: 3px;
+  background: linear-gradient(to right,
+    #00aaff 0%, #00ff88 20%, #88ff00 35%,
+    #ffff00 50%, #ff8800 65%, #ff2200 80%,
+    #cc00ff 100%);
+  margin: 6px 0 4px;
+}
+.legenda-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text2);
+}
+
+.storm-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.storm-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.storm-item:last-child { border-bottom: none; }
+.storm-ico { font-size: 16px; flex-shrink: 0; }
+.storm-txt { flex: 1; }
+.storm-nivel {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+.nivel-EXTREMO  { background: rgba(255,107,107,.2); color: var(--extreme); }
+.nivel-ALTO     { background: rgba(248,81,73,.2);   color: var(--danger); }
+.nivel-MODERADO { background: rgba(210,153,34,.2);  color: var(--warning); }
+.nivel-BAIXO    { background: rgba(88,166,255,.2);  color: var(--info); }
+
+/* ── Projeção de trajetória ──────────────────────────── */
+.traj-confianca {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text2);
+  margin-top: 4px;
+}
+.traj-barra {
+  flex: 1;
+  height: 4px;
+  background: var(--bg3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.traj-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width .4s;
+}
+
+/* ── Taxa de precisão ────────────────────────────────── */
+.prec-global {
+  background: linear-gradient(135deg, var(--bg2), var(--bg3));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  text-align: center;
+}
+.prec-valor {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+  margin: 4px 0;
+}
+.prec-cat-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.prec-cat-item:last-child { border-bottom: none; }
+.prec-mini-bar {
+  width: 60px;
+  height: 4px;
+  background: var(--bg3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.prec-mini-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+.marker-pulse {
+  width: 14px; height: 14px;
+  background: var(--accent2);
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 0 rgba(56,139,253,.6);
+  animation: marker-pulse 2s ease-out infinite;
+}
+@keyframes marker-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(56,139,253,.6); }
+  70%  { box-shadow: 0 0 0 12px rgba(56,139,253,0); }
+  100% { box-shadow: 0 0 0 0 rgba(56,139,253,0); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="padding: 12px 16px 0; max-width:1440px; margin:0 auto">
+
+  <!-- ── Controles ─────────────────────────────────────────────────── -->
+  <div class="radar-ctrl">
+    <button class="btn btn-sm btn-primary" id="btn-play" onclick="togglePlay()">
+      ▶ Play
+    </button>
+    <button class="btn btn-sm" onclick="frameStep(-1)">⏮</button>
+    <button class="btn btn-sm" onclick="frameStep(1)">⏭</button>
+
+    <div class="frame-timeline" id="frame-timeline"></div>
+    <div class="frame-label"   id="frame-label">Carregando...</div>
+
+    <select class="form-control" id="sel-velocidade"
+            style="width:110px" onchange="ajustarVelocidade(this.value)">
+      <option value="1000">Lento</option>
+      <option value="700" selected>Normal</option>
+      <option value="400">Rápido</option>
+      <option value="200">Muito rápido</option>
+    </select>
+
+    <select class="form-control" id="sel-opacidade"
+            style="width:110px" onchange="ajustarOpacidade(this.value)">
+      <option value="60">Opac. 60%</option>
+      <option value="75" selected>Opac. 75%</option>
+      <option value="90">Opac. 90%</option>
+      <option value="100">Opac. 100%</option>
+    </select>
+
+    <label style="display:flex;gap:5px;align-items:center;
+                  font-size:12px;cursor:pointer;white-space:nowrap">
+      <input type="checkbox" id="chk-nowcast" onchange="recarregarRadar()">
+      🔮 Nowcast +30min
+    </label>
+
+    <label style="display:flex;gap:5px;align-items:center;
+                  font-size:12px;cursor:pointer;white-space:nowrap">
+      <input type="checkbox" id="chk-raio" checked onchange="toggleCirculo()">
+      📍 Raio 50km
+    </label>
+
+    <label style="display:flex;gap:5px;align-items:center;
+                  font-size:12px;cursor:pointer;white-space:nowrap">
+      <input type="checkbox" id="chk-traj" checked onchange="toggleTrajetorias()">
+      📍 Trajetórias
+    </label>
+
+    <button class="btn btn-sm" onclick="recarregarRadar()" title="Atualizar">🔄</button>
+  </div>
+
+  <!-- ── Layout principal ──────────────────────────────────────────── -->
+  <div class="radar-layout">
+
+    <!-- MAPA -->
+    <div style="position:relative">
+      <div id="mapa-radar"></div>
+      <!-- Aviso quando zoom supera limite do radar -->
+      <div id="zoom-aviso">
+        🔍 Zoom muito alto para radar<br>
+        <span style="font-size:12px;color:var(--text2)">
+          Mostrando animação de sistemas detectados.<br>
+          Reduza o zoom para ver o radar.
+        </span>
+      </div>
+    </div>
+
+    <!-- PAINEL LATERAL -->
+    <div class="radar-painel">
+
+      <!-- Legenda -->
+      <div class="legenda-wrap">
+        <div class="card-title" style="margin-bottom:6px">📊 Legenda Radar</div>
+        <div class="legenda-grad"></div>
+        <div class="legenda-labels">
+          <span>Fraco</span><span>Moderado</span>
+          <span>Forte</span><span>Extremo</span>
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-top:6px">
+          <span style="color:var(--warning)">■</span> Amarelo = nowcast (previsão 30min)<br>
+          <span style="color:var(--accent2)">——</span> Linha = trajetória prevista<br>
+          <span style="color:var(--text3)">●</span> Ponto tracejado = posição futura estimada
+        </div>
+      </div>
+
+      <!-- Localização -->
+      <div class="storm-card">
+        <div class="card-title">📍 Sua Localização</div>
+        <div style="font-size:13px;font-weight:600">
+          {{ user.localizacao.cidade or 'N/D' }}
+          {% if user.localizacao.estado %}, {{ user.localizacao.estado }}{% endif %}
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-top:3px;font-family:monospace">
+          {{ '%.4f'|format(user.localizacao.lat|float) }},
+          {{ '%.4f'|format(user.localizacao.lon|float) }}
+        </div>
+      </div>
+
+      <!-- Taxa de precisão global -->
+      <div class="prec-global">
+        <div class="card-title" style="text-align:center;justify-content:center">
+          🎯 Precisão do Sistema
+        </div>
+        <div class="prec-valor" id="prec-global-valor">--</div>
+        <div id="prec-global-txt" style="font-size:12px;color:var(--text2)">
+          Calculando...
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:6px">
+          Taxa de acerto global (média ponderada)
+        </div>
+        <button class="btn btn-sm" style="width:100%;margin-top:8px"
+                onclick="mostrarDetalhesPrecisao()">
+          📊 Ver detalhes por categoria
+        </button>
+      </div>
+
+      <!-- Tempestades detectadas -->
+      <div class="storm-card">
+        <div class="card-title">⛈️ Tempestades — Trajetórias</div>
+        <div id="storms-lista">
+          <div class="text-center" style="padding:16px">
+            <div class="spinner"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tornado/Microburst -->
+      <div class="storm-card">
+        <div class="card-title">🌪️ Risco — Tornado & Microburst</div>
+        <div id="tornado-lista">
+          <div class="text-center" style="padding:16px">
+            <div class="spinner"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status radar -->
+      <div class="storm-card">
+        <div class="card-title">📡 Status do Radar</div>
+        <div id="radar-status" style="font-size:12px;color:var(--text2)">
+          Conectando...
+        </div>
+      </div>
+
+    </div><!-- /painel -->
+  </div><!-- /layout -->
+</div>
+
+<!-- Modal de precisão por categoria -->
+<div id="modal-precisao" style="display:none;position:fixed;inset:0;z-index:400;
+     background:rgba(0,0,0,.75);align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+              max-width:600px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:var(--shadow)">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);
+                display:flex;justify-content:space-between;align-items:center;
+                position:sticky;top:0;background:var(--bg2)">
+      <div style="font-weight:700">🎯 Taxa de Acerto por Categoria</div>
+      <button onclick="document.getElementById('modal-precisao').style.display='none'"
+              style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:20px">✕</button>
+    </div>
+    <div style="padding:18px 20px" id="modal-precisao-corpo">
+      <div class="spinner"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+'use strict';
+
+const LAT = {{ user.localizacao.lat | default(-15.78) | float }};
+const LON = {{ user.localizacao.lon | default(-47.93) | float }};
+
+// ════════════════════════════════════════════════════════════════════
+// MAPA
+// ════════════════════════════════════════════════════════════════════
+const mapa = L.map('mapa-radar', {
+  zoomControl: true,
+  attributionControl: true,
+}).setView([LAT, LON], 8);
+
+const tileBase = L.tileLayer(
+  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  {
+    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+    maxZoom: 18,
+    className: 'tile-base-dark',
+  }
+).addTo(mapa);
+
+const styleTag = document.createElement('style');
+styleTag.textContent = `.tile-base-dark {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
+}`;
+document.head.appendChild(styleTag);
+
+// ── Marcador do usuário ───────────────────────────────────────────
+const iconePulse = L.divIcon({
+  className: '',
+  html: '<div class="marker-pulse"></div>',
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
+});
+L.marker([LAT, LON], { icon: iconePulse, zIndexOffset: 1000 })
+  .addTo(mapa)
+  .bindPopup(
+    '<b>📍 Sua localização</b><br>' +
+    '{{ user.localizacao.cidade or "" }}'
+  );
+
+// ── Círculo 50km ─────────────────────────────────────────────────
+const circulo50km = L.circle([LAT, LON], {
+  radius: 50000, color: '#388bfd', weight: 1.5,
+  opacity: 0.6, fillOpacity: 0.04, dashArray: '6,4',
+}).addTo(mapa);
+
+function toggleCirculo() {
+  document.getElementById('chk-raio').checked
+    ? circulo50km.addTo(mapa)
+    : mapa.removeLayer(circulo50km);
+}
+
+// Grupos de camadas
+const grpTempestade  = L.layerGroup().addTo(mapa);
+const grpTrajetorias = L.layerGroup().addTo(mapa);
+const grpAnimacoes   = L.layerGroup().addTo(mapa);
+
+// ════════════════════════════════════════════════════════════════════
+// RADAR — SOLUÇÃO ZOOM DUPLO
+// ════════════════════════════════════════════════════════════════════
+/*
+ SOLUÇÃO PARA O PROBLEMA DE ZOOM:
+
+ RainViewer tem limite de zoom nativo:
+   - tileSize=512 → maxNativeZoom=6  (zoom Leaflet ≤7)
+   - tileSize=256 → maxNativeZoom=8  (zoom Leaflet ≤8)
+
+ Acima disso os tiles somem.
+
+ ESTRATÉGIA:
+ 1. Zoom ≤ 8: mostra tiles de radar normalmente (512px com zoomOffset=-1)
+ 2. Zoom > 8: oculta radar, mostra aviso + animações de sistemas detectados
+    Isso é útil pois quando o usuário dá zoom numa área específica,
+    quer ver os sistemas detectados e suas trajetórias, não o radar geral.
+*/
+
+let radarFrames512 = [];
+let radarFrames256 = [];
+let radarTimestamps= [];
+let radarRaw       = {};
+let frameAtual     = 0;
+let camadaAtual    = null;
+let playTimer      = null;
+let velocidade     = 700;
+let opacidade      = 0.75;
+let isPlaying      = false;
+let zoomAtual      = mapa.getZoom();
+const ZOOM_LIMITE_RADAR = 8;
+
+// Monitor de zoom
+mapa.on('zoomend', function() {
+  zoomAtual = mapa.getZoom();
+  _atualizarVisibilidadeRadar();
+});
+
+function _atualizarVisibilidadeRadar() {
+  const aviso = document.getElementById('zoom-aviso');
+  if (zoomAtual > ZOOM_LIMITE_RADAR) {
+    // Zoom alto: esconde radar, mostra aviso + animações
+    if (camadaAtual) camadaAtual.setOpacity(0);
+    aviso.classList.add('visivel');
+    _ativarAnimacoesSistemas();
+  } else {
+    // Zoom normal: mostra radar
+    if (camadaAtual) camadaAtual.setOpacity(opacidade);
+    aviso.classList.remove('visivel');
+    _desativarAnimacoesSistemas();
+  }
+}
+
+// Animações quando zoom está alto
+let _animTimer = null;
+let _animFrameIdx = 0;
+let _animMarkers = [];
+
+function _ativarAnimacoesSistemas() {
+  if (_animTimer) return; // já rodando
+  if (_ultimosEventos.length === 0) return;
+
+  _animTimer = setInterval(() => {
+    _animFrameIdx = (_animFrameIdx + 1) % 8;
+    _animarSistemas(_animFrameIdx);
+  }, 400);
+}
+
+function _desativarAnimacoesSistemas() {
+  if (_animTimer) {
+    clearInterval(_animTimer);
+    _animTimer = null;
+  }
+  _animMarkers.forEach(m => grpAnimacoes.removeLayer(m));
+  _animMarkers = [];
+}
+
+function _animarSistemas(frame) {
+  _animMarkers.forEach(m => grpAnimacoes.removeLayer(m));
+  _animMarkers = [];
+
+  _ultimosEventos.forEach(ev => {
+    // Posição animada ao longo da trajetória
+    const progresso = frame / 8;
+    const latAnim   = ev.latO + (LAT - ev.latO) * progresso;
+    const lonAnim   = ev.lonO + (LON - ev.lonO) * progresso;
+
+    const pulseSize = 16 + (frame % 4) * 3;
+    const ico = L.divIcon({
+      className: '',
+      html: `<div style="font-size:${pulseSize}px;
+                          filter:drop-shadow(0 0 6px ${ev.cor});
+                          transition:font-size .2s">${ev.ico}</div>`,
+      iconSize: [pulseSize, pulseSize],
+      iconAnchor: [pulseSize/2, pulseSize/2],
+    });
+
+    const m = L.marker([latAnim, lonAnim], { icon: ico, zIndexOffset: 600 })
+      .addTo(grpAnimacoes)
+      .bindPopup(`<b>${ev.ico} ${nomeEvento(ev.tipo)}</b><br>
+        Chegada: ${ev.hora ? ev.hora.substr(11,5) : ''}<br>
+        ~${ev.distKm}km · ~${ev.vel}km/h`);
+    _animMarkers.push(m);
+  });
+}
+
+async function recarregarRadar() {
+  document.getElementById('frame-label').textContent = 'Atualizando...';
+  try {
+    const dados = await fetch('/api/radar').then(r => r.json());
+    radarRaw = dados;
+
+    const useNowcast = document.getElementById('chk-nowcast').checked;
+    const zConfig    = dados.zoom_config || {};
+
+    // Frames 512px (zoom baixo)
+    radarFrames512 = [
+      ...(dados.passado  || []),
+      ...(useNowcast ? (dados.nowcast  || []) : []),
+    ];
+    // Frames 256px (zoom médio — fallback)
+    radarFrames256 = [
+      ...(dados.passado_256  || dados.passado  || []),
+      ...(useNowcast ? (dados.nowcast_256 || dados.nowcast || []) : []),
+    ];
+    radarTimestamps = [
+      ...(dados.timestamps || []),
+      ...(useNowcast ? (dados.timestamps_nowcast || []) : []),
+    ];
+
+    if (radarFrames512.length === 0) {
+      document.getElementById('frame-label').textContent = 'Sem dados';
+      atualizarStatus('⚠️ Sem frames de radar disponíveis', false);
+      return;
+    }
+
+    frameAtual = radarFrames512.length - 1;
+    renderizarFrame(frameAtual);
+    renderizarTimeline();
+
+    atualizarStatus(
+      `✅ ${radarFrames512.length} frames · ` +
+      `Radar: ${dados.n_passado||0} frames + ` +
+      `Nowcast: ${dados.n_nowcast||0} frames<br>` +
+      `🕐 Atualizado: ${new Date().toLocaleTimeString('pt-BR')}`,
+      true
+    );
+  } catch(e) {
+    document.getElementById('frame-label').textContent = 'Erro';
+    atualizarStatus('❌ Falha ao conectar com RainViewer', false);
+    console.error('Radar error:', e);
+  }
+}
+
+function renderizarFrame(idx) {
+  if (camadaAtual) {
+    mapa.removeLayer(camadaAtual);
+    camadaAtual = null;
+  }
+
+  const url = radarFrames512[idx];
+  if (!url) return;
+
+  /*
+   CONFIGURAÇÃO CORRETA PARA RAINVIEWER:
+   - tileSize: 512 → tiles maiores, zoom nativo máx = 6
+   - zoomOffset: -1 → quando Leaflet pede zoom=7, solicita zoom=6 da API
+   - maxNativeZoom: 6 → acima disso o Leaflet escala o tile existente
+   - Resultado: radar visível do zoom 1 ao 8 sem sumir!
+  */
+  camadaAtual = L.tileLayer(url, {
+    opacity:           zoomAtual > ZOOM_LIMITE_RADAR ? 0 : opacidade,
+    zIndex:            10,
+    tileSize:          512,
+    zoomOffset:        -1,
+    maxNativeZoom:     6,
+    maxZoom:           18,  // Leaflet pode ir até 18, tiles serão escalados
+    updateWhenZooming: false,
+    keepBuffer:        3,
+    errorTileUrl:      '',  // tile vazio em caso de erro (sem quadrado vermelho)
+  });
+  camadaAtual.addTo(mapa);
+
+  // Timestamp no label
+  const ts = radarTimestamps[idx] || '';
+  const total   = radarFrames512.length;
+  const nPass   = (radarRaw.passado || []).length;
+  const isNow   = idx >= nPass;
+  document.getElementById('frame-label').textContent =
+    `${isNow ? '🔮 Nowcast' : '📡 Radar'} ${ts} — ${idx+1}/${total}`;
+
+  // Atualiza pips
+  document.querySelectorAll('.frame-pip').forEach((pip, i) => {
+    pip.classList.toggle('atual', i === idx);
+  });
+
+  // Aplica visibilidade baseada no zoom atual
+  _atualizarVisibilidadeRadar();
+}
+
+function renderizarTimeline() {
+  const tl   = document.getElementById('frame-timeline');
+  const nPas = (radarRaw.passado || []).length;
+  tl.innerHTML = '';
+  radarFrames512.forEach((_, i) => {
+    const pip = document.createElement('div');
+    pip.className = 'frame-pip ' + (i >= nPas ? 'nowcast' : 'passado');
+    if (i === frameAtual) pip.classList.add('atual');
+    pip.title = radarTimestamps[i] || `Frame ${i+1}`;
+    pip.addEventListener('click', () => { frameAtual = i; renderizarFrame(i); });
+    tl.appendChild(pip);
+  });
+}
+
+function frameStep(dir) {
+  if (!radarFrames512.length) return;
+  frameAtual = (frameAtual + dir + radarFrames512.length) % radarFrames512.length;
+  renderizarFrame(frameAtual);
+}
+
+function togglePlay() {
+  const btn = document.getElementById('btn-play');
+  if (isPlaying) {
+    clearInterval(playTimer);
+    playTimer = null;
+    isPlaying = false;
+    btn.textContent = '▶ Play';
+  } else {
+    isPlaying = true;
+    btn.textContent = '⏸ Pause';
+    playTimer = setInterval(() => {
+      frameAtual = (frameAtual + 1) % radarFrames512.length;
+      renderizarFrame(frameAtual);
+    }, velocidade);
+  }
+}
+
+function ajustarVelocidade(v) {
+  velocidade = parseInt(v);
+  if (isPlaying) {
+    clearInterval(playTimer);
+    playTimer = setInterval(() => {
+      frameAtual = (frameAtual + 1) % radarFrames512.length;
+      renderizarFrame(frameAtual);
+    }, velocidade);
+  }
+}
+
+function ajustarOpacidade(v) {
+  opacidade = parseInt(v) / 100;
+  if (camadaAtual && zoomAtual <= ZOOM_LIMITE_RADAR) {
+    camadaAtual.setOpacity(opacidade);
+  }
+}
+
+function atualizarStatus(msg, ok) {
+  document.getElementById('radar-status').innerHTML =
+    `<div style="color:${ok?'var(--success)':'var(--warning)'}">${msg}</div>
+     <div style="margin-top:4px;font-size:11px">
+       Fonte: RainViewer (gratuito, sem chave)<br>
+       Auto-atualização: 2min | Zoom radar: ≤${ZOOM_LIMITE_RADAR}
+     </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// TRAJETÓRIAS PROJETADAS (NOVO)
+// ════════════════════════════════════════════════════════════════════
+
+let _ultimosEventos = [];
+let _mostrarTrajetorias = true;
+
+function toggleTrajetorias() {
+  _mostrarTrajetorias = document.getElementById('chk-traj').checked;
+  if (_mostrarTrajetorias) {
+    _desenharTrajetorias(_ultimosEventos);
+  } else {
+    grpTrajetorias.clearLayers();
+  }
+}
+
+function _desenharTrajetorias(eventos) {
+  grpTrajetorias.clearLayers();
+  if (!_mostrarTrajetorias) return;
+
+  eventos.forEach((ev, ordem) => {
+    if (!ev.dir && ev.dir !== 0) return;
+
+    const confianca = _calcularConfiancaDirecao(ev);
+
+    // ── Linha da trajetória (da origem ao ponto de impacto) ──────────
+    const linhaOpts = {
+      color:    ev.cor,
+      weight:   2.5,
+      opacity:  Math.max(0.4, confianca),
+      dashArray: confianca < 0.6 ? '10,8' : '5,4',
+    };
+    L.polyline([[ev.latO, ev.lonO], [LAT, LON]], linhaOpts)
+      .addTo(grpTrajetorias)
+      .bindPopup(_popupTrajetoria(ev, confianca));
+
+    // ── Cone de incerteza (largura proporcional à incerteza) ─────────
+    // Quanto menor a confiança, maior o cone
+    if (confianca < 0.85) {
+      const incerteza = (1 - confianca) * 40000; // metros
+      L.circle([LAT, LON], {
+        radius:      incerteza,
+        color:       ev.cor,
+        weight:      1,
+        opacity:     0.25,
+        fillOpacity: 0.04,
+        dashArray:   '4,6',
+      }).addTo(grpTrajetorias);
+    }
+
+    // ── Seta de direção no meio da linha ─────────────────────────────
+    const latM = (ev.latO + LAT) / 2;
+    const lonM = (ev.lonO + LON) / 2;
+    const angRad = Math.atan2(LON - ev.lonO, LAT - ev.latO);
+    const angDeg = angRad * 180 / Math.PI;
+
+    const setaIco = L.divIcon({
+      className: '',
+      html: `<div style="
+        font-size:18px;
+        transform:rotate(${angDeg}deg);
+        color:${ev.cor};
+        opacity:${Math.max(0.5, confianca)};
+        filter:drop-shadow(0 0 3px ${ev.cor});
+        text-shadow:0 0 6px ${ev.cor}
+      ">➤</div>`,
+      iconSize: [20, 20],
+      iconAnchor: [10, 10],
+    });
+    L.marker([latM, lonM], { icon: setaIco, zIndexOffset: 300 })
+      .addTo(grpTrajetorias)
+      .bindPopup(_popupTrajetoria(ev, confianca));
+
+    // ── Pontos de posição futura (a cada 1h) ─────────────────────────
+    for (let hFut = 1; hFut <= Math.min(ev.dH, 6); hFut++) {
+      const prog = hFut / ev.dH;
+      const latFut = ev.latO + (LAT - ev.latO) * prog;
+      const lonFut = ev.lonO + (LON - ev.lonO) * prog;
+      const confFut = confianca * (1 - prog * 0.2); // confiança cai com tempo
+
+      const ponto = L.divIcon({
+        className: '',
+        html: `<div style="
+          width:${8 + (1-prog)*4}px;
+          height:${8 + (1-prog)*4}px;
+          background:${ev.cor};
+          border-radius:50%;
+          border:2px solid rgba(255,255,255,.5);
+          opacity:${Math.max(0.3, confFut)};
+        "></div>
+        <div style="
+          position:absolute;
+          top:12px;left:50%;transform:translateX(-50%);
+          font-size:9px;color:${ev.cor};
+          white-space:nowrap;font-weight:600;
+          text-shadow:0 0 3px rgba(0,0,0,.8)
+        ">+${hFut}h</div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+      });
+
+      L.marker([latFut, lonFut], { icon: ponto, zIndexOffset: 250 })
+        .addTo(grpTrajetorias)
+        .bindPopup(`<b>${ev.ico} ${nomeEvento(ev.tipo)}</b><br>
+          Posição em +${hFut}h<br>
+          Confiança: ${(confFut*100).toFixed(0)}%`);
+    }
+
+    // ── Ponto de origem (onde o sistema está agora) ──────────────────
+    const origemIco = L.divIcon({
+      className: '',
+      html: `<div style="
+        font-size:${16 + ev.intens*4}px;
+        filter:drop-shadow(0 0 5px ${ev.cor});
+      ">${ev.ico}</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    });
+    L.marker([ev.latO, ev.lonO], { icon: origemIco, zIndexOffset: 400 })
+      .addTo(grpTrajetorias)
+      .bindPopup(`<b>${ev.ico} ${nomeEvento(ev.tipo)}</b><br>
+        Origem estimada<br>
+        Chegada: ${ev.hora ? ev.hora.substr(11,5) : ''}
+        ${ev.dH > 0 ? ' (em ~'+ev.dH+'h)' : ''}<br>
+        ~${ev.distKm}km · ~${ev.vel}km/h<br>
+        Direção: ${nomeDe(ev.dir)} (${Math.round(ev.dir||0)}°)<br>
+        ${_barraConfianca(confianca)}`);
+  });
+}
+
+function _calcularConfiancaDirecao(ev) {
+  /*
+   Confiança baseada em:
+   - Tipo de sistema (tempestade severa → mais previsível)
+   - Distância (mais perto → mais confiável)
+   - Tempo até chegada (mais cedo → mais confiável)
+   - Intensidade
+  */
+  let conf = 0.65; // base
+
+  // Tipo influi
+  if (ev.tipo === 'tempestade') conf += 0.15;
+  else if (ev.tipo === 'chuva_forte') conf += 0.10;
+  else if (ev.tipo === 'vento_forte') conf += 0.05;
+
+  // Distância (mais perto = mais confiável)
+  if (ev.distKm < 30)  conf += 0.15;
+  else if (ev.distKm < 60) conf += 0.08;
+  else if (ev.distKm > 150) conf -= 0.10;
+
+  // Tempo (mais cedo = mais confiável)
+  if (ev.dH <= 1) conf += 0.15;
+  else if (ev.dH <= 3) conf += 0.05;
+  else if (ev.dH > 6) conf -= 0.10;
+
+  // Intensidade
+  if (ev.intens >= 3) conf += 0.10;
+
+  return Math.max(0.20, Math.min(0.98, conf));
+}
+
+function _barraConfianca(conf) {
+  const cor = conf >= 0.75 ? '#3fb950' : conf >= 0.5 ? '#d29922' : '#f85149';
+  const pct = Math.round(conf * 100);
+  return `<div style="margin-top:4px;font-size:11px">
+    Confiança na direção: <b style="color:${cor}">${pct}%</b>
+    <div style="height:3px;background:#333;border-radius:2px;margin-top:2px">
+      <div style="height:100%;width:${pct}%;background:${cor};border-radius:2px"></div>
+    </div>
+  </div>`;
+}
+
+function _popupTrajetoria(ev, confianca) {
+  const cor  = confianca >= 0.75 ? '#3fb950' : confianca >= 0.5 ? '#d29922' : '#f85149';
+  const pct  = Math.round(confianca * 100);
+  const txt  = pct >= 75 ? 'Alta confiança' : pct >= 50 ? 'Confiança moderada' : 'Baixa confiança';
+  return `<b>${ev.ico} ${nomeEvento(ev.tipo)}</b><br>
+    De ${nomeDe(ev.dir)} (${Math.round(ev.dir||0)}°) · ~${ev.vel}km/h<br>
+    Chegada: ${ev.hora ? ev.hora.substr(11,5) : ''} (~${ev.dH}h)<br>
+    Distância: ~${ev.distKm}km<br>
+    ${ev.cape > 0 ? 'CAPE: '+ev.cape+' J/kg<br>' : ''}
+    <div style="margin-top:4px;padding:3px 6px;border-radius:3px;
+                background:rgba(0,0,0,.2);font-size:11px;
+                color:${cor}">
+      ${txt}: ${pct}%
+    </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// ALERTAS + SISTEMAS
+// ════════════════════════════════════════════════════════════════════
+
+function nomeDe(g) {
+  if (g == null) return '--';
+  return ['N','NE','L','SE','S','SO','O','NO'][Math.round(g/45)%8];
+}
+function nomeEvento(tipo) {
+  return {
+    tempestade:'Tempestade',chuva_forte:'Chuva Forte',
+    chuva:'Chuva',vento_forte:'Vento Forte',
+    tornado:'Tornado (condições)',microburst:'Microburst',
+    raio:'Raios',granizo:'Granizo',furacao:'Furacão'
+  }[tipo] || (tipo||'').replace(/_/g,' ');
+}
+function destino(lat,lon,dirG,distKm) {
+  if (dirG==null||distKm<=0) return {lat,lon};
+  const R=6371,d=distKm/R,b=dirG*Math.PI/180;
+  const la1=lat*Math.PI/180,lo1=lon*Math.PI/180;
+  const la2=Math.asin(Math.sin(la1)*Math.cos(d)+Math.cos(la1)*Math.sin(d)*Math.cos(b));
+  const lo2=lo1+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(la1),Math.cos(d)-Math.sin(la1)*Math.sin(la2));
+  return {lat:la2*180/Math.PI,lon:lo2*180/Math.PI};
+}
+
+async function carregarAlertas() {
+  try {
+    const dados = await fetch(`/api/alertas?lat=${LAT}&lon=${LON}`).then(r=>r.json());
+    const lista = dados.alertas || [];
+
+    // Separa tipos
+    const tempests = lista.filter(a =>
+      ['tempestade','chuva_forte','chuva_extrema','vento_forte',
+       'raio','granizo','furacao'].includes(a.tipo)
+    );
+    const tornados = lista.filter(a =>
+      ['tornado','microburst'].includes(a.tipo)
+    );
+
+    // Gera eventos com trajetórias a partir dos alertas
+    _ultimosEventos = _alertasParaEventos(lista);
+    _desenharTrajetorias(_ultimosEventos);
+    marcarRegiaoRisco(tornados);
+
+    // ── Render tempestades ──
+    const elS = document.getElementById('storms-lista');
+    if (!tempests.length) {
+      elS.innerHTML = `<div style="text-align:center;padding:12px;
+        color:var(--success);font-size:12px">
+        ✅ Sem tempestades detectadas</div>`;
+    } else {
+      elS.innerHTML = tempests.map(a => {
+        const confianca = a.concordancia ?? 1;
+        const pct = Math.round(confianca * 100);
+        const cor = pct >= 75 ? 'var(--success)' : pct >= 50 ? 'var(--warning)' : 'var(--danger)';
+        return `<div class="storm-item">
+          <span class="storm-ico">${a.icone}</span>
+          <div class="storm-txt">
+            <div style="font-weight:600">${(a.tipo||'').replace(/_/g,' ')}</div>
+            <div style="color:var(--text2);margin-top:2px;font-size:11px">${a.descricao}</div>
+            <div class="traj-confianca">
+              <span>Confiança dir.:</span>
+              <div class="traj-barra">
+                <div class="traj-fill" style="width:${pct}%;background:${cor}"></div>
+              </div>
+              <span style="color:${cor};font-weight:600">${pct}%</span>
+            </div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px">
+              ⏰ ${a.hora ? a.hora.substr(11,5) : 'Agora'}
+              <button onclick='explicarAlerta(${JSON.stringify(a)})'
+                style="background:none;border:none;color:var(--accent2);
+                       cursor:pointer;font-size:11px;padding:0;margin-left:6px">
+                🔍 Por quê?
+              </button>
+            </div>
+          </div>
+          <span class="storm-nivel nivel-${a.severidade}">${a.severidade}</span>
+        </div>`;
+      }).join('');
+    }
+
+    // ── Render tornado ──
+    const elT = document.getElementById('tornado-lista');
+    if (!tornados.length) {
+      elT.innerHTML = `<div style="padding:10px;font-size:12px">
+        <div style="color:var(--success);margin-bottom:6px">
+          ✅ Sem risco de tornado/microburst</div>
+        <div style="color:var(--text2);font-size:11px">
+          Monitorando: CAPE, LI, STP, EHI, DCAPE, shear
+        </div></div>`;
+    } else {
+      elT.innerHTML = tornados.map(a => {
+        const nivel = a.nivel_risco || a.severidade;
+        return `<div class="storm-item">
+          <span class="storm-ico">${a.icone}</span>
+          <div class="storm-txt">
+            <div style="font-weight:600">
+              ${a.tipo==='tornado'?'🌪️ Condições para Tornado':'💨 Microburst'}
+            </div>
+            <div style="color:var(--text2);font-size:11px;margin-top:2px">
+              ${a.descricao}
+            </div>
+            ${a.dados ? `<div style="font-size:10px;color:var(--text3);
+                            margin-top:3px;font-family:monospace">
+              CAPE:${a.dados.cape||'--'}
+              ${a.dados.stp?' | STP:'+a.dados.stp:''}
+              ${a.dados.ehi?' | EHI:'+a.dados.ehi:''}
+              ${a.dados.dcape_est?' | DCAPE:'+a.dados.dcape_est:''}
+            </div>` : ''}
+            <div style="font-size:10px;color:var(--text3);margin-top:3px">
+              ⏰ ${a.hora ? a.hora.substr(11,5) : ''}
+              <button onclick='explicarAlerta(${JSON.stringify(a)})'
+                style="background:none;border:none;color:var(--accent2);
+                       cursor:pointer;font-size:11px;padding:0;margin-left:6px">
+                🔍 Por quê?
+              </button>
+            </div>
+          </div>
+          <span class="storm-nivel nivel-${nivel}">${nivel}</span>
+        </div>`;
+      }).join('');
+    }
+
+  } catch(e) {
+    console.error('Alertas radar:', e);
+  }
+}
+
+function _alertasParaEventos(lista) {
+  /*
+   Converte alertas em "eventos com trajetória" para desenhar no mapa.
+   Usa hora do alerta para estimar distância/origem.
+  */
+  const eventos = [];
+  const corMap = {
+    'EXTREMO': '#ff6b6b', 'PERIGO': '#f85149',
+    'ALERTA':  '#d29922', 'ATENCAO': '#58a6ff',
+  };
+  const icoMap = {
+    tempestade:   {ico:'⛈️', intens:3},
+    chuva_forte:  {ico:'🌧️', intens:2},
+    chuva_extrema:{ico:'🌧️', intens:3},
+    vento_forte:  {ico:'💨', intens:2},
+    furacao:      {ico:'🌀', intens:3},
+    raio:         {ico:'⚡', intens:2},
+  };
+
+  lista.forEach(a => {
+    const info = icoMap[a.tipo];
+    if (!info) return;
+    if (!a.hora) return;
+
+    // Estima "quando chega"
+    let dH = 0;
+    try {
+      const horaAlerta = new Date(a.hora);
+      dH = Math.max(0, Math.round((horaAlerta - new Date()) / 3600000));
+    } catch(e) {}
+
+    // Velocidade e direção dos dados do alerta
+    const dados = a.dados || {};
+    const vel   = dados.wind || dados.gust || 30;
+    // Direção: usa vento do alerta ou N por padrão (sem dado)
+    const dir   = dados.dir_graus ?? null;
+    const distKm= Math.max(5, dH * (vel * 0.5));
+
+    const orig = destino(LAT, LON,
+      dir != null ? (dir + 180) % 360 : 315, // inverte: de onde vem
+      distKm
+    );
+
+    eventos.push({
+      tipo:   a.tipo,
+      ico:    info.ico,
+      intens: info.intens,
+      cor:    corMap[a.severidade] || '#d29922',
+      hora:   a.hora,
+      dH,
+      dir,
+      vel:    Math.round(vel),
+      distKm: Math.round(distKm),
+      cape:   dados.cape || 0,
+      prec:   (dados.mm || 0).toFixed(1),
+      gust:   Math.round(dados.gust || 0),
+      latO:   orig.lat,
+      lonO:   orig.lon,
+    });
+  });
+
+  return eventos;
+}
+
+function marcarRegiaoRisco(alertasTornado) {
+  grpTempestade.clearLayers();
+  alertasTornado.forEach(a => {
+    const nivel  = a.nivel_risco || 'MODERADO';
+    const corMap = {
+      EXTREMO: '#ff6b6b', ALTO: '#f85149',
+      MODERADO: '#d29922', BAIXO: '#58a6ff',
+    };
+    const cor    = corMap[nivel] || '#d29922';
+    const raioKm = {EXTREMO:80,ALTO:60,MODERADO:40,BAIXO:25}[nivel] || 40;
+
+    L.circle([LAT, LON], {
+      radius: raioKm*1000, color: cor, weight:2, opacity:.8,
+      fillOpacity:.05, dashArray:'8,6',
+    }).addTo(grpTempestade)
+      .bindPopup(`<b>${a.tipo==='tornado'?'🌪️ Risco Tornado':'💨 Risco Microburst'}</b><br>
+        Nível: ${nivel}<br>${a.descricao}`);
+
+    const ico = L.divIcon({
+      className: '',
+      html: `<div style="font-size:24px;filter:drop-shadow(0 0 6px ${cor})">
+               ${a.tipo==='tornado'?'🌪️':'💨'}
+             </div>`,
+      iconSize: [32,32], iconAnchor: [16,16],
+    });
+    L.marker([LAT,LON],{icon:ico,zIndexOffset:500})
+      .addTo(grpTempestade)
+      .bindPopup(`<b>${nivel} — ${a.tipo}</b><br>${a.descricao}`);
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// TAXA DE PRECISÃO
+// ════════════════════════════════════════════════════════════════════
+
+async function carregarPrecisao() {
+  try {
+    const dados = await fetch('/api/precisao').then(r=>r.json());
+    const g = dados.global || {};
+    const taxa = g.taxa || 0;
+    const total = g.total || 0;
+
+    const inter = g.interpretacao || {};
+    const cor = inter.cor || 'var(--text2)';
+    const emoji = inter.emoji || '⏳';
+
+    document.getElementById('prec-global-valor').innerHTML =
+      `<span style="color:${cor}">${total >= 5 ? taxa.toFixed(1)+'%' : '--'}</span>`;
+    document.getElementById('prec-global-txt').textContent =
+      total >= 5
+        ? `${emoji} ${inter.texto} · ${total} previsões confirmadas`
+        : `⏳ Coletando dados (${total}/5 mínimo)`;
+
+  } catch(e) {
+    document.getElementById('prec-global-txt').textContent = 'Indisponível';
+  }
+}
+
+async function mostrarDetalhesPrecisao() {
+  const modal = document.getElementById('modal-precisao');
+  modal.style.display = 'flex';
+
+  const corpo = document.getElementById('modal-precisao-corpo');
+  corpo.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const dados = await fetch('/api/precisao').then(r=>r.json());
+    const cats  = dados.categorias || {};
+    const nomes = dados.categorias_nomes || {};
+    const g     = dados.global || {};
+    const pend  = dados.n_pendentes || 0;
+
+    let html = '';
+
+    // Global
+    const gi = g.interpretacao || {};
+    html += `<div style="background:var(--bg3);border-radius:var(--radius);
+                         padding:14px;margin-bottom:16px;text-align:center">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:4px">
+        TAXA DE ACERTO GLOBAL (PONDERADA)
+      </div>
+      <div style="font-size:32px;font-weight:700;color:${gi.cor||'var(--text2)'}">
+        ${g.total >= 5 ? g.taxa+'%' : 'Coletando...'}
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-top:4px">
+        ${gi.emoji||'⏳'} ${gi.texto||'Aguardando dados'} ·
+        ${g.acertos||0} acertos / ${g.erros||0} erros /
+        ${pend} pendentes
+      </div>
+    </div>`;
+
+    // Por categoria
+    html += `<div style="font-size:12px;font-weight:600;color:var(--text2);
+                          margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">
+      Por Categoria</div>`;
+
+    const catOrdem = [
+      'tempestade','tornado','microburst','raio',
+      'chuva_forte','vento_forte','temperatura','direcao','nowcast'
+    ];
+
+    catOrdem.forEach(catNome => {
+      const cat  = cats[catNome];
+      if (!cat) return;
+      const nome = nomes[catNome] || catNome;
+      const taxa = cat.taxa || 0;
+      const tot  = cat.total || 0;
+      const ci   = cat.interpretacao || {};
+      const cor  = ci.cor || 'var(--text2)';
+      const pct  = tot >= 3 ? taxa : 0;
+
+      html += `<div class="prec-cat-item">
+        <div style="flex:1">
+          <div style="font-weight:500">${nome}</div>
+          <div style="font-size:10px;color:var(--text3)">
+            ${ci.emoji||'⏳'} ${ci.texto||'Dados insuf.'} ·
+            ${cat.acertos||0}✅ ${cat.erros||0}❌ de ${tot} prev.
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:10px">
+          <div class="prec-mini-bar">
+            <div class="prec-mini-fill" style="width:${pct}%;background:${cor}"></div>
+          </div>
+          <span style="font-weight:700;color:${cor};min-width:38px;text-align:right">
+            ${tot >= 3 ? taxa.toFixed(0)+'%' : '--'}
+          </span>
+        </div>
+      </div>`;
+    });
+
+    // Histórico diário (se tiver)
+    const hist = (g.historico_diario || []).slice(-7);
+    if (hist.length >= 2) {
+      html += `<div style="font-size:12px;font-weight:600;color:var(--text2);
+                            margin:14px 0 8px;text-transform:uppercase;letter-spacing:.5px">
+        Histórico 7 Dias</div>`;
+      html += `<div style="display:flex;align-items:flex-end;gap:4px;height:50px">`;
+      const maxT = Math.max(...hist.map(h=>h.taxa), 1);
+      hist.forEach(h => {
+        const pct = Math.round((h.taxa/maxT)*100);
+        const cor = h.taxa>=75?'var(--success)':h.taxa>=50?'var(--warning)':'var(--danger)';
+        html += `<div style="flex:1;display:flex;flex-direction:column;
+                              align-items:center;gap:2px" title="${h.data}: ${h.taxa}%">
+          <div style="font-size:9px;color:var(--text3)">${h.taxa.toFixed(0)}%</div>
+          <div style="width:100%;height:${pct}%;background:${cor};
+                      border-radius:2px 2px 0 0;min-height:3px"></div>
+          <div style="font-size:9px;color:var(--text3)">
+            ${h.data.substr(5)}
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    html += `<div style="margin-top:14px;padding:10px;background:var(--bg3);
+                          border-radius:var(--radius);font-size:11px;color:var(--text2)">
+      💡 O sistema auto-aprende comparando previsões com dados reais a cada 5 min.
+      Mínimo de 5 amostras para exibir taxa. Previsões além de 48h são marcadas como expiradas.
+    </div>`;
+
+    corpo.innerHTML = html;
+  } catch(e) {
+    corpo.innerHTML = '<p style="color:var(--danger)">Erro ao carregar precisão.</p>';
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// INICIALIZAÇÃO
+// ════════════════════════════════════════════════════════════════════
+
+recarregarRadar();
+carregarAlertas();
+carregarPrecisao();
+
+setInterval(recarregarRadar,  2 * 60 * 1000);
+setInterval(carregarAlertas,  5 * 60 * 1000);
+setInterval(carregarPrecisao, 5 * 60 * 1000);
+</script>
+{% endblock %}

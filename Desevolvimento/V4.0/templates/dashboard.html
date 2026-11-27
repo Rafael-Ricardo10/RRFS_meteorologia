@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - RRFS Meteorologia</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+    --bg-primary: #0a0e1a; --bg-secondary: #0f1420; --bg-card: #1a2133; --bg-card-hover: #212a40;
+    --accent: #3b82f6; --accent-hover: #2563eb; --text-primary: #e2e8f0; --text-secondary: #94a3b8;
+    --text-muted: #64748b; --border: #2a3448; --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+       background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+
+/* HEADER */
+.header { background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 16px 24px;
+          display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+.header-logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
+.header-logo span { font-size: 24px; }
+.header-actions { display: flex; align-items: center; gap: 16px; }
+.username { color: var(--text-secondary); font-size: 14px; }
+.btn-logout { background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+              padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all .2s; }
+.btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+/* LAYOUT */
+.layout { display: grid; grid-template-columns: 300px 1fr; min-height: calc(100vh - 65px); }
+.sidebar { background: var(--bg-secondary); border-right: 1px solid var(--border); padding: 24px; overflow-y: auto; }
+.main-content { padding: 24px; overflow-y: auto; min-width: 0; }
+
+/* SIDEBAR */
+.sidebar-title { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 16px;
+                 text-transform: uppercase; letter-spacing: .5px; }
+.add-location-box { margin-bottom: 24px; position: relative; }
+.search-input-wrapper { position: relative; }
+.search-input { width: 100%; padding: 10px 40px 10px 14px; background: var(--bg-card); border: 1px solid var(--border);
+                border-radius: 8px; color: var(--text-primary); font-size: 14px; margin-bottom: 8px; }
+.search-input:focus { outline: none; border-color: var(--accent); }
+.search-spinner { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px;
+                  border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%;
+                  animation: spin .6s linear infinite; display: none; }
+.search-spinner.show { display: block; }
+@keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
+.search-results { max-height: 280px; overflow-y: auto; margin-bottom: 8px; background: var(--bg-card);
+                  border-radius: 8px; border: 1px solid var(--border); display: none; }
+.search-results.show { display: block; }
+.search-result-item { padding: 12px 14px; cursor: pointer; font-size: 13px; transition: background .15s;
+                      border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 2px; }
+.search-result-item:last-child { border-bottom: none; }
+.search-result-item:hover { background: var(--bg-card-hover); }
+.search-result-city { font-weight: 600; color: var(--text-primary); }
+.search-result-detail { font-size: 11px; color: var(--text-muted); }
+.search-feedback { padding: 14px; font-size: 13px; color: var(--text-muted); text-align: center; }
+.search-feedback.error { color: #fca5a5; }
+.search-hint { font-size: 11px; color: var(--text-muted); margin-top: -4px; margin-bottom: 12px; }
+.location-list { display: flex; flex-direction: column; gap: 8px; }
+.location-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px;
+                 cursor: pointer; transition: all .2s; position: relative; }
+.location-item:hover { border-color: var(--accent); transform: translateX(4px); }
+.location-item.active { border-color: var(--accent); background: var(--bg-card-hover); }
+.location-name { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+.location-country { font-size: 12px; color: var(--text-muted); }
+.location-delete { position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--text-muted);
+                   cursor: pointer; font-size: 14px; opacity: 0; transition: opacity .2s; }
+.location-item:hover .location-delete { opacity: 1; }
+.location-delete:hover { color: var(--danger); }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+.empty-state-icon { font-size: 40px; margin-bottom: 12px; }
+
+/* MAIN */
+.welcome-screen { display: flex; flex-direction: column; align-items: center; justify-content: center;
+                  height: 60vh; text-align: center; color: var(--text-muted); }
+.welcome-icon { font-size: 64px; margin-bottom: 16px; }
+.forecast-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;
+                   flex-wrap: wrap; gap: 16px; }
+.forecast-title { font-size: 28px; font-weight: 700; }
+.forecast-subtitle { color: var(--text-secondary); font-size: 14px; margin-top: 4px; }
+.btn-refresh { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 8px;
+               cursor: pointer; font-size: 14px; font-weight: 500; transition: background .2s; }
+.btn-refresh:hover { background: var(--accent-hover); }
+.btn-refresh:disabled { opacity: .6; cursor: not-allowed; }
+
+.grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.metric-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; transition: transform .2s; }
+.metric-card:hover { transform: translateY(-2px); }
+.metric-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.metric-value { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+.confidence-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.confidence-fill { height: 100%; background: var(--success); transition: width .5s; }
+.confidence-text { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* RADAR */
+.radar-container { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 24px; }
+.radar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+.radar-header-title { font-size: 16px; font-weight: 600; }
+.radar-timestamp { font-size: 12px; color: var(--text-muted); }
+.radar-grid-wrapper { overflow: auto; border-radius: 10px; border: 1px solid var(--border);
+                      width: fit-content; max-width: 100%; margin: 0 auto; }
+.radar-grid { display: grid; position: relative; }
+.radar-tile { position: relative; width: 256px; height: 256px; background: var(--bg-secondary); overflow: hidden; }
+.radar-tile img { position: absolute; top: 0; left: 0; width: 256px; height: 256px; display: block; }
+.radar-tile .radar-overlay { opacity: .8; }
+.radar-center-marker { position: absolute; transform: translate(-50%, -50%); width: 14px; height: 14px;
+                       background: var(--accent); border: 2px solid white; border-radius: 50%;
+                       box-shadow: 0 0 10px rgba(59,130,246,.9); z-index: 5; pointer-events: none; }
+.radar-note { font-size: 11px; color: var(--text-muted); margin-top: 10px; text-align: center; }
+
+/* SETAS DE MOVIMENTO */
+.radar-arrows { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 6; overflow: visible; }
+.radar-motion { background: var(--bg-secondary); border: 1px solid var(--border); border-left: 3px solid var(--warning);
+                border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--text-secondary); margin-top: 12px; }
+.radar-motion.reach { border-left-color: var(--danger); }
+.radar-motion small { display:block; color: var(--text-muted); font-size: 11px; margin-top: 4px; }
+.arrow-legend { display:flex; gap:14px; flex-wrap:wrap; font-size:11px; color: var(--text-muted); margin-top:8px; }
+
+/* HORÁRIO / DIÁRIO */
+.section-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; margin-top: 32px; }
+.section-sub { font-size: 12px; color: var(--text-muted); font-weight: 400; margin-left: 8px; }
+.hourly-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 8px; }
+.hourly-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
+               min-width: 90px; text-align: center; flex-shrink: 0; }
+.hourly-time { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+.hourly-icon { font-size: 24px; margin-bottom: 6px; }
+.hourly-temp { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.hourly-precip { font-size: 11px; color: var(--text-muted); }
+.daily-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.daily-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 12px; text-align: center; }
+.daily-card.today { border-color: var(--accent); background: var(--bg-card-hover); }
+.daily-card.severe { border-color: var(--danger); background: rgba(239,68,68,.08); box-shadow: 0 0 0 1px rgba(239,68,68,.35); }
+.daily-date { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; text-transform: capitalize; }
+.daily-icon { font-size: 28px; margin-bottom: 6px; }
+.daily-desc { font-size: 10px; color: var(--text-muted); margin-bottom: 8px; min-height: 24px; }
+.daily-temps { display: flex; justify-content: center; gap: 8px; margin-bottom: 6px; }
+.daily-max { font-weight: 700; color: var(--text-primary); }
+.daily-min { color: var(--text-muted); }
+.daily-precip { font-size: 11px; color: var(--accent); }
+.daily-conf { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+.severe-badge { margin-top: 8px; display: inline-block; background: rgba(239,68,68,.2); color: #fca5a5;
+                font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+
+/* MODELOS */
+.models-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 8px 16px; overflow-x: auto; margin-bottom: 24px; }
+.models-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.models-table th { text-align: right; color: var(--text-muted); font-weight: 500; font-size: 11px; padding: 10px 8px; text-transform: uppercase; }
+.models-table td { text-align: right; padding: 9px 8px; border-top: 1px solid var(--border); color: var(--text-secondary); }
+.models-table th:first-child, .models-table td:first-child { text-align: left; color: var(--text-primary); font-weight: 600; }
+.weight-pill { display: inline-block; min-width: 46px; padding: 2px 8px; border-radius: 6px; background: rgba(59,130,246,.15); color: #93c5fd; font-weight: 600; }
+
+/* EVENTOS EXTREMOS */
+.extreme-events { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.extreme-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; text-align: center; }
+.extreme-icon { font-size: 28px; margin-bottom: 8px; }
+.extreme-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+.extreme-value { font-size: 24px; font-weight: 700; }
+.alert-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; margin-top: 8px; }
+.alert-critico { background: rgba(239,68,68,.15); color: #fca5a5; }
+.alert-alto { background: rgba(245,158,11,.15); color: #fcd34d; }
+.alert-moderado { background: rgba(59,130,246,.15); color: #93c5fd; }
+.alert-baixo { background: rgba(100,116,139,.15); color: #cbd5e1; }
+.alert-nenhum { background: rgba(16,185,129,.15); color: #6ee7b7; }
+
+/* IA */
+.ia-box { background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+          border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+.ia-box-title { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 12px; color: var(--accent); }
+.ia-box-content { font-size: 14px; line-height: 1.6; color: var(--text-secondary); white-space: pre-line; }
+
+/* LOADING */
+.loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 50vh; gap: 16px; }
+.spinner-large { width: 48px; height: 48px; border: 4px solid var(--border); border-top-color: var(--accent);
+                 border-radius: 50%; animation: spin-large .8s linear infinite; }
+@keyframes spin-large { to { transform: rotate(360deg); } }
+.loading-text { color: var(--text-secondary); font-size: 14px; }
+
+@media (max-width: 768px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { border-right: none; border-bottom: 1px solid var(--border); max-height: 300px; }
+}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ===== NOVO ===== */
+.updated-note { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.metric-sub { font-size: 12px; color: var(--text-secondary); margin: -2px 0 8px; min-height: 16px; }
+.hit-line { font-size: 11px; margin-top: 6px; color: var(--text-muted); }
+.hit-line b { font-weight: 700; }
+.fill-good { background: var(--success) !important; } .fill-mid { background: var(--warning) !important; } .fill-bad { background: var(--danger) !important; }
+.fill-none { background: var(--border) !important; }
+.radar-verdict { background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+                 border-radius: 10px; padding: 12px 16px; font-size: 13px; color: var(--text-secondary); margin-bottom: 24px; }
+.radar-verdict.confirmado { border-left-color: var(--danger); } .radar-verdict.aguardando { border-left-color: var(--warning); }
+.radar-verdict small { display:block; color: var(--text-muted); margin-top: 4px; font-size: 11px; }
+.extreme-card.na { opacity: .55; } .extreme-sub { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+.daily-card { cursor: pointer; transition: border-color .2s, transform .2s; }
+.daily-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.daily-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(59,130,246,.35); }
+.storm-chip { margin-top: 6px; display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: rgba(245,158,11,.15); color: #fcd34d; }
+.storm-chip.alto { background: rgba(239,68,68,.2); color: #fca5a5; }
+.day-panel { background: var(--bg-card); border: 1px solid var(--accent); border-radius: 14px; padding: 20px; margin-bottom: 24px; }
+.day-panel h3 { font-size: 18px; margin-bottom: 4px; text-transform: capitalize; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.chip { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 12px; color: var(--text-secondary); }
+.chip b { color: var(--text-primary); }
+.chart-wrap { overflow-x: auto; margin: 8px 0 16px; }
+.chart-legend { font-size: 11px; color: var(--text-muted); display: flex; gap: 14px; flex-wrap: wrap; margin-top: 4px; }
+.hour-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; max-height: 460px; overflow-y: auto; }
+.hour-table { border-collapse: collapse; font-size: 12px; width: 100%; white-space: nowrap; }
+.hour-table th { position: sticky; top: 0; background: var(--bg-secondary); color: var(--text-muted); font-weight: 500; padding: 8px 10px; text-align: right; }
+.hour-table td { padding: 7px 10px; text-align: right; border-top: 1px solid var(--border); color: var(--text-secondary); }
+.hour-table th:first-child, .hour-table td:first-child { text-align: left; position: sticky; left: 0; background: var(--bg-card); color: var(--text-primary); font-weight: 600; }
+.hour-table tr.now td { background: rgba(59,130,246,.10); }
+.hot { color: #fca5a5 !important; font-weight: 700; }
+.skill-table td.good { color: #6ee7b7; } .skill-table td.mid { color: #fcd34d; } .skill-table td.bad { color: #fca5a5; }
+.skill-note { font-size: 12px; color: var(--text-muted); margin: -8px 0 24px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-logo"><span>🌦️</span> RRFS Meteorologia</div>
+    <div class="header-actions">
+        <span class="username" id="username-display"></span>
+        <button class="btn-logout" onclick="logout()">Sair</button>
+    </div>
+</div>
+
+<div class="layout">
+    <div class="sidebar">
+        <div class="sidebar-title">Adicionar Cidade</div>
+        <div class="add-location-box">
+            <div class="search-input-wrapper">
+                <input type="text" class="search-input" id="search-input" placeholder="Digite o nome da cidade..." autocomplete="off">
+                <div class="search-spinner" id="search-spinner"></div>
+            </div>
+            <div class="search-hint">Mínimo 3 letras • Aguarde os resultados aparecerem</div>
+            <div class="search-results" id="search-results"></div>
+        </div>
+
+        <div class="sidebar-title">Minhas Localizações</div>
+        <div class="location-list" id="location-list">
+            <div class="empty-state"><div class="empty-state-icon">📍</div><div>Nenhuma cidade adicionada</div></div>
+        </div>
+    </div>
+
+    <div class="main-content" id="main-content">
+        <div class="welcome-screen">
+            <div class="welcome-icon">🌤️</div>
+            <h2>Selecione uma cidade</h2>
+            <p>Adicione uma localização na barra lateral para ver a previsão</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentLocationId = null;
+    let locations = [];
+    let searchTimeout = null;
+    let searchAbortController = null;
+    let lastSearchResults = [];
+
+    const WELCOME_HTML = `
+        <div class="welcome-screen">
+            <div class="welcome-icon">🌤️</div>
+            <h2>Selecione uma cidade</h2>
+            <p>Adicione uma localização na barra lateral para ver a previsão</p>
+        </div>`;
+
+    function esc(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { loadLocations(); });
+
+    async function logout() {
+        await fetch('/logout', { method: 'POST' });
+        window.location.href = '/login';
+    }
+
+    // ===== BUSCA DE CIDADE =====
+    const searchInput = document.getElementById('search-input');
+    const searchResultsEl = document.getElementById('search-results');
+    const searchSpinnerEl = document.getElementById('search-spinner');
+
+    searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        const query = searchInput.value.trim();
+        if (searchAbortController) searchAbortController.abort();
+        if (query.length < 3) { hideSearchResults(); return; }
+        searchSpinnerEl.classList.add('show');
+        searchTimeout = setTimeout(() => searchCity(query), 700);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.add-location-box')) hideSearchResults();
+    });
+
+    function hideSearchResults() {
+        searchResultsEl.classList.remove('show');
+        searchResultsEl.innerHTML = '';
+        searchSpinnerEl.classList.remove('show');
+    }
+
+    function showSearchFeedback(message, isError = false) {
+        searchResultsEl.innerHTML = `<div class="search-feedback ${isError ? 'error' : ''}">${esc(message)}</div>`;
+        searchResultsEl.classList.add('show');
+    }
+
+    async function searchCity(query) {
+        searchAbortController = new AbortController();
+        try {
+            const res = await fetch('/api/geocode', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ city_name: query }), signal: searchAbortController.signal
+            });
+            searchSpinnerEl.classList.remove('show');
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                showSearchFeedback(errData.error || 'Erro ao buscar cidade', true);
+                return;
+            }
+            const results = await res.json();
+            if (!Array.isArray(results) || results.length === 0) {
+                showSearchFeedback('Nenhuma cidade encontrada. Tente outro nome.');
+                return;
+            }
+            lastSearchResults = results;
+            searchResultsEl.innerHTML = results.map((r, idx) => {
+                const detail = [r.state, r.country].filter(Boolean).join(', ') || r.display_name || '';
+                return `
+                    <div class="search-result-item" onclick="selectSearchResult(${idx})">
+                        <span class="search-result-city">📍 ${esc(r.city || 'Local sem nome')}</span>
+                        <span class="search-result-detail">${esc(detail)}</span>
+                    </div>`;
+            }).join('');
+            searchResultsEl.classList.add('show');
+        } catch (err) {
+            searchSpinnerEl.classList.remove('show');
+            if (err.name === 'AbortError') return;
+            console.error('Erro na busca:', err);
+            showSearchFeedback('Erro de conexão ao buscar cidade', true);
+        }
+    }
+
+    function selectSearchResult(idx) {
+        const r = lastSearchResults[idx];
+        if (r) addLocation(r);
+    }
+
+    async function addLocation(result) {
+        try {
+            const res = await fetch('/api/locations', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ city_name: result.city, latitude: result.latitude,
+                                       longitude: result.longitude, country: result.country || '' })
+            });
+            const data = await res.json();
+            if (data.success) {
+                searchInput.value = '';
+                hideSearchResults();
+                await loadLocations();
+                selectLocation(data.location_id);
+            } else {
+                alert(data.error || 'Erro ao adicionar localização');
+            }
+        } catch (err) {
+            console.error('Erro ao adicionar localização:', err);
+            alert('Erro de conexão ao adicionar localização');
+        }
+    }
+
+    // ===== LOCALIZAÇÕES =====
+    async function loadLocations() {
+        try {
+            const res = await fetch('/api/locations');
+            locations = await res.json();
+            renderLocations();
+        } catch (err) {
+            console.error('Erro ao carregar localizações:', err);
+        }
+    }
+
+    function renderLocations() {
+        const container = document.getElementById('location-list');
+        if (!locations.length) {
+            container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📍</div><div>Nenhuma cidade adicionada</div></div>`;
+            return;
+        }
+        container.innerHTML = locations.map(loc => `
+            <div class="location-item ${loc.id === currentLocationId ? 'active' : ''}" onclick="selectLocation(${loc.id})">
+                <button class="location-delete" onclick="event.stopPropagation(); deleteLocation(${loc.id})">✕</button>
+                <div class="location-name">${esc(loc.city_name)}</div>
+                <div class="location-country">${esc(loc.country || 'Local')}</div>
+            </div>`).join('');
+    }
+
+    async function deleteLocation(id) {
+        if (!confirm('Remover esta localização?')) return;
+        try {
+            await fetch(`/api/locations/${id}`, { method: 'DELETE' });
+            if (currentLocationId === id) {
+                currentLocationId = null;
+                document.getElementById('main-content').innerHTML = WELCOME_HTML;
+            }
+            await loadLocations();
+        } catch (err) {
+            console.error('Erro ao deletar:', err);
+        }
+    }
+
+    // ===== SELECIONAR LOCALIZAÇÃO / CARREGAR PREVISÃO =====
+    async function fetchJson(url) {
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            return data.error ? null : data;
+        } catch (err) { console.error('Erro em', url, err); return null; }
+    }
+
+    async function selectLocation(id, force = false) {
+        currentLocationId = id;
+        renderLocations();
+        const location = locations.find(l => l.id === id);
+        document.getElementById('main-content').innerHTML = `
+            <div class="loading-screen"><div class="spinner-large"></div>
+            <div class="loading-text">Consultando modelos meteorológicos...</div></div>`;
+
+        const radarPromise = fetchJson(`/api/radar/${id}${force ? '?force=1' : ''}`);
+        let data = null;
+        try {
+            const res = await fetch(`/api/forecast/${id}${force ? '?force=1' : ''}`);
+            data = await res.json();
+            if (data.error) throw new Error(data.error);
+        } catch (err) {
+            if (currentLocationId !== id) return;
+            document.getElementById('main-content').innerHTML = `
+                <div class="welcome-screen"><div class="welcome-icon">⚠️</div>
+                <h2>Erro ao buscar previsão</h2><p>${esc(err.message)}</p></div>`;
+            return;
+        }
+        // a previsão já foi recalculada acima; os demais usam o cache recém-gerado
+        const [timeseries, radar] = await Promise.all([fetchJson(`/api/forecast/${id}/timeseries`), radarPromise]);
+        if (currentLocationId !== id) return;
+        window.__ts = timeseries;
+        renderForecast(location, data, timeseries, radar);
+        loadIAAnalysis(id);
+    }
+
+    let iaTimer = null;
+    async function loadIAAnalysis(id) {
+        clearTimeout(iaTimer);
+        const out = await fetchJson(`/api/forecast/${id}/ia-analysis`);
+        if (currentLocationId !== id) return;
+        const el = document.getElementById('ia-box-content');
+        if (!el) return;
+        if (out && out.status === 'ready' && out.analysis) {
+            el.textContent = out.analysis;
+            const m = document.getElementById('ia-box-meta');
+            if (m) m.textContent = out.model_used ? `modelo: ${out.model_used}` : '';
+        } else if (out && out.status === 'error') {
+            el.textContent = (out.stale_analysis ? out.stale_analysis + '\n\n' : '') +
+                `⚠️ Não foi possível atualizar a análise agora (${out.error || 'servidor de IA indisponível'}). Tentando de novo em instantes...`;
+            iaTimer = setTimeout(() => loadIAAnalysis(id), 30000);
+        } else {
+            // o servidor de IA é pequeno e pode demorar: sem limite de tempo, a página só continua perguntando
+            el.textContent = (out && out.stale_analysis ? out.stale_analysis + '\n\n⏳ Atualizando a análise com os dados mais recentes...'
+                                                          : '⏳ O agente de IA está gerando a análise (pode levar alguns minutos)...');
+            iaTimer = setTimeout(() => loadIAAnalysis(id), 6000);
+        }
+    }
+
+    // ===== HELPERS =====
+    function getAlertClass(p) { return p >= 80 ? 'alert-critico' : p >= 60 ? 'alert-alto' : p >= 40 ? 'alert-moderado' : p > 0 ? 'alert-baixo' : 'alert-nenhum'; }
+    function getAlertText(p) { return p >= 80 ? 'CRÍTICO' : p >= 60 ? 'ALTO' : p >= 40 ? 'MODERADO' : p > 0 ? 'BAIXO' : 'NENHUM'; }
+    function fmtNum(v, d = 0) { return (v !== null && v !== undefined && !isNaN(v)) ? Number(v).toFixed(d).replace('.', ',') : '--'; }
+    function formatDate(s) {
+        try {
+            const d = new Date(s + 'T00:00:00');
+            const w = d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
+            return `${w.charAt(0).toUpperCase() + w.slice(1)} ${d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`;
+        } catch (e) { return s; }
+    }
+    function longDate(s) {
+        try { return new Date(s + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }); }
+        catch (e) { return s; }
+    }
+    const COMPASS = ['N','NNE','NE','ENE','L','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO'];
+    function compass(deg) { return (deg === null || deg === undefined) ? '' : COMPASS[Math.round(deg / 22.5) % 16]; }
+    function rateClass(r) { return r === null || r === undefined ? 'none' : r >= 0.85 ? 'good' : r >= 0.65 ? 'mid' : 'bad'; }
+    function minutesAgo(iso) { return iso ? Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000)) : null; }
+
+    // ===== RADAR =====
+    function renderRadarSection(radar) {
+        if (!radar || !radar.tiles || !radar.tiles.length) {
+            return `
+                <div class="radar-container">
+                    <div class="radar-header"><span class="radar-header-title">🛰️ Radar Meteorológico</span></div>
+                    <div class="search-feedback">Imagem de radar indisponível no momento.</div>
+                </div>`;
+        }
+
+        const ts = radar.tile_size || 256;
+        const tilesHtml = radar.tiles.map(t => `
+            <div class="radar-tile" style="grid-row:${t.row + 1}; grid-column:${t.col + 1};">
+                <img src="${esc(t.base_url)}" alt="" onerror="this.style.opacity=0">
+                <img class="radar-overlay" src="${esc(t.radar_url)}" alt="" onerror="this.style.display='none'">
+            </div>`).join('');
+
+        const marker = radar.marker
+            ? `<div class="radar-center-marker" style="left:${radar.marker.x}px; top:${radar.marker.y}px;"></div>` : '';
+        const mo = radar.motion || {};
+        const W = (radar.grid_size || 3) * ts;
+        const cells = (mo.cells || []).filter(c => !c.stationary);
+        const col = c => c.eta_min !== null && c.eta_min !== undefined ? '#ef4444' : '#f59e0b';
+        const arrows = cells.length ? `
+            <svg class="radar-arrows" width="${W}" height="${W}" viewBox="0 0 ${W} ${W}" aria-label="Direção de movimento das células de chuva">
+                <defs>
+                    <marker id="ah-warn" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#f59e0b"/></marker>
+                    <marker id="ah-hit" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#ef4444"/></marker>
+                </defs>
+                ${cells.map(c => `
+                    <circle cx="${c.x}" cy="${c.y}" r="5" fill="${col(c)}" stroke="#fff" stroke-width="1.5"/>
+                    <line x1="${c.x}" y1="${c.y}" x2="${c.arrow.x2}" y2="${c.arrow.y2}" stroke="#0a0e1a" stroke-width="6" stroke-linecap="round" opacity=".55"/>
+                    <line x1="${c.x}" y1="${c.y}" x2="${c.arrow.x2}" y2="${c.arrow.y2}" stroke="${col(c)}" stroke-width="3" stroke-linecap="round"
+                          marker-end="url(#${c.eta_min !== null && c.eta_min !== undefined ? 'ah-hit' : 'ah-warn'})"/>
+                    <text x="${c.arrow.x2 + 6}" y="${c.arrow.y2 - 6}" font-size="11" font-weight="700" fill="#fff" stroke="#0a0e1a" stroke-width="3" paint-order="stroke">${esc(c.toward)} ${Math.round(c.speed_kmh)} km/h</text>
+                `).join('')}
+            </svg>` : '';
+        const sum = radar.motion_summary || {};
+        const reaches = cells.some(c => c.eta_min !== null && c.eta_min !== undefined);
+        const motionBox = mo.available ? `
+            <div class="radar-motion ${reaches ? 'reach' : ''}">
+                🧭 ${sum.text ? esc(sum.text)
+                    : (cells.length ? 'Células detectadas no radar; setas mostram para onde estão indo.'
+                                    : 'Sem células de chuva em movimento detectadas no radar agora.')}
+                <small>Seta = posição estimada em 30 min · medido comparando o quadro atual com o de ~${Math.round(mo.dt_min || 30)} min atrás ·
+                       é uma extrapolação: a chuva pode se intensificar, mudar de rumo ou se dissipar.</small>
+            </div>
+            ${cells.length ? `<div class="arrow-legend"><span><b style="color:#ef4444">●→</b> deve alcançar o local em até 3 h</span><span><b style="color:#f59e0b">●→</b> não deve alcançar o local</span><span>${cells.length} célula(s) acompanhada(s)</span></div>` : ''}` : '';
+        const frameDate = radar.frame_time_iso ? new Date(radar.frame_time_iso).toLocaleString('pt-BR') : '--';
+
+        return `
+            <div class="radar-container">
+                <div class="radar-header">
+                    <span class="radar-header-title">🛰️ Radar Meteorológico (Tempo Real)</span>
+                    <span class="radar-timestamp">Captura: ${frameDate}</span>
+                </div>
+                <div class="radar-grid-wrapper">
+                    <div class="radar-grid" style="grid-template-columns: repeat(${radar.grid_size}, ${ts}px); grid-template-rows: repeat(${radar.grid_size}, ${ts}px);">
+                        ${tilesHtml}
+                        ${arrows}
+                        ${marker}
+                    </div>
+                </div>
+                ${motionBox}
+                <div class="radar-note">📍 O ponto azul marca a localização selecionada • Radar: RainViewer • Mapa: ${esc(radar.attribution || '© OpenStreetMap contributors')}</div>
+            </div>`;
+    }
+
+
+    // ---- cartão "agora" com taxa de acerto da variável
+    function metricCard(icon, label, value, sub, key, data) {
+        const h = (data.hit_rate || {})[key] || {};
+        const conf = Math.round(((data[key + '_confidence']) || 0) * 100);
+        const has = h.rate !== null && h.rate !== undefined;
+        const pct = has ? Math.round(h.rate * 100) : conf;
+        const cls = has ? 'fill-' + rateClass(h.rate) : 'fill-none';
+        const line = has
+            ? `Acerto <b>${pct}%</b> (±${fmtNum(h.tolerance, h.tolerance < 1 ? 1 : 0)}${esc(h.unit)}) · ${h.n} verificações`
+            : 'Acerto: coletando histórico (o sistema compara de hora em hora)';
+        return `
+            <div class="metric-card">
+                <div class="metric-label">${icon} ${label}</div>
+                <div class="metric-value">${value}</div>
+                <div class="metric-sub">${sub || ''}</div>
+                <div class="confidence-bar"><div class="confidence-fill ${cls}" style="width:${pct}%"></div></div>
+                <div class="hit-line">${line}</div>
+                <div class="confidence-text">Concordância entre modelos: ${conf}%</div>
+            </div>`;
+    }
+
+    function renderNowCards(d) {
+        const gust = d.wind_gusts != null ? `rajadas ${fmtNum(d.wind_gusts, 0)} km/h` : '';
+        return `<div class="grid-cards">
+            ${metricCard('🌡️', 'Temperatura', fmtNum(d.temperature, 1) + '°C', d.apparent_temperature != null ? 'sensação ' + fmtNum(d.apparent_temperature, 1) + '°C' : '', 'temperature', d)}
+            ${metricCard('💧', 'Umidade', fmtNum(d.humidity, 0) + '%', d.dew_point != null ? 'ponto de orvalho ' + fmtNum(d.dew_point, 1) + '°C' : '', 'humidity', d)}
+            ${metricCard('🌧️', 'Chuva agora', fmtNum(d.precipitation_hour, 1) + ' mm/h', 'próximas 24h: ' + fmtNum(d.precipitation, 1) + ' mm', 'precipitation', d)}
+            ${metricCard('💨', 'Vento', fmtNum(d.wind_speed, 0) + ' km/h ' + compass(d.wind_direction), gust, 'wind_speed', d)}
+            ${metricCard('🌬️', 'Rajadas', fmtNum(d.wind_gusts, 0) + ' km/h', '', 'wind_gusts', d)}
+            ${metricCard('🧭', 'Pressão', fmtNum(d.pressure, 1) + ' hPa', '', 'pressure', d)}
+            ${metricCard('☁️', 'Nuvens', fmtNum(d.cloud_cover, 0) + '%', d.visibility_km != null ? 'visibilidade ' + fmtNum(d.visibility_km, 0) + ' km' : '', 'cloud_cover', d)}
+            ${metricCard('☀️', 'Radiação solar', fmtNum(d.solar_radiation, 0) + ' W/m²', d.uv_index != null ? 'índice UV ' + fmtNum(d.uv_index, 1) : '', 'solar_radiation', d)}
+        </div>`;
+    }
+
+    function renderStorms(d) {
+        const ev = k => d[k] || 0;
+        const card = (icon, label, key, sub) => `
+            <div class="extreme-card">
+                <div class="extreme-icon">${icon}</div><div class="extreme-label">${label}</div>
+                <div class="extreme-value">${ev(key).toFixed(0)}%</div>
+                <span class="alert-badge ${getAlertClass(ev(key))}">${getAlertText(ev(key))}</span>
+                ${sub ? `<div class="extreme-sub">${sub}</div>` : ''}
+            </div>`;
+        const rv = d.radar_validation || {};
+        let verdict;
+        if (rv.available) {
+            const cov = `eco ${Math.round((rv.coverage_10 || 0) * 100)}% a ${fmtNum(rv.radius_km && rv.radius_km.near, 0)} km · ${Math.round((rv.coverage_30 || 0) * 100)}% a ${fmtNum(rv.radius_km && rv.radius_km.wide, 0)} km${rv.trend ? ' · ' + rv.trend : ''}${rv.dbz_near != null && rv.dbz_reliable ? ' · máx. ~' + rv.dbz_near + ' dBZ a ' + fmtNum(rv.radius_km && rv.radius_km.wide, 0) + ' km' : ''}`;
+            verdict = `<div class="radar-verdict ${esc(rv.storm_status)}">🛰️ ${esc(rv.message)}<small>${cov}. Intensidade estimada pela cor do radar (dBZ aproximado). O radar gratuito mostra só o passado recente e não detecta tornado.</small></div>`;
+        } else {
+            verdict = `<div class="radar-verdict">🛰️ Radar indisponível agora; alertas baseados apenas nos modelos.</div>`;
+        }
+        const sw = d.storm_watch || {};
+        const watchBox = (sw.level && sw.level !== 'NENHUM') ? `
+            <div class="radar-verdict ${(sw.level === 'SEVERO' || sw.level === 'ALERTA') ? 'confirmado' : 'aguardando'}">
+                <b>🛰️ Vigia de tempestade: ${esc(sw.level)}</b>
+                <small>${esc((sw.reasons || []).join(' · '))}${sw.hail_core ? ' · núcleo compatível com granizo (não confirma granizo)' : ''} · radar e raios revistos a cada 10 min · não substitui alertas oficiais (Defesa Civil/INMET)</small>
+            </div>` : '';
+        const t0 = (window.__ts && window.__ts.daily || []).find(x => x.is_today) || {};
+        const st0 = t0.storm || {};
+        const typeBox = (st0.level && st0.level !== 'NENHUM') ? `
+            <div class="radar-verdict ${st0.level === 'ALTO' ? 'confirmado' : 'aguardando'}">
+                <b>⛈️ Hoje: ${esc(st0.type || 'tempestade')} · risco ${esc(String(st0.level).toLowerCase())}</b>
+                ${st0.organization ? `<br>${esc(st0.organization)}` : ''}
+                ${(st0.hazards || []).length ? `<br>Ameaças: ${esc(st0.hazards.join(', '))}` : ''}
+                <small>${st0.peak_hour ? 'pico ~' + esc(st0.peak_hour) + ' · ' : ''}CAPE ${fmtNum(st0.cape_max, 0)} J/kg · cisalhamento 0–6 km ${fmtNum(st0.shear06, 0)} m/s (estimado pelos modelos)</small>
+                ${st0.tornado_note ? `<small>🌀 ${esc(st0.tornado_note)}</small>` : ''}
+            </div>` : '';
+        return `
+            <div class="section-title">⚡ Raios e Tempestades <span class="section-sub">probabilidade nas próximas 24h, calibrada pelo histórico do local</span></div>
+            <div class="extreme-events">
+                ${card('🌩️', 'Raios', 'lightning_probability')}
+                ${card('📍', 'Raios nas redondezas', 'lightning_near_probability', 'até ~30 km do ponto (pode passar ao lado)')}
+                ${card('🌐', 'Tempestade nas redondezas', 'thunderstorm_near_probability', 'até ~30 km do ponto')}
+                ${card('⛈️', 'Tempestade', 'thunderstorm_probability')}
+                ${card('🧊', 'Granizo', 'hail_probability')}
+                ${card('🌪️', 'Vento extremo', 'extreme_wind_probability')}
+                ${card('🌊', 'Chuva forte', 'heavy_rain_probability')}
+                <div class="extreme-card na"><div class="extreme-icon">🌀</div><div class="extreme-label">Tornado</div>
+                    <div class="extreme-value">--</div><div class="extreme-sub">não estimável com os dados disponíveis</div></div>
+            </div>
+            ${watchBox}
+            ${typeBox}
+            ${verdict}`;
+    }
+
+    function renderStormSkill(data) {
+        const sk = (data.skill || {}).storm;
+        if (!sk) return '';
+        const names = {thunderstorm: 'Tempestade (no ponto)', lightning: 'Raios (no ponto)', thunderstorm_near: 'Tempestade (até 30 km)', lightning_near: 'Raios (até 30 km)', hail: 'Granizo (no ponto)', hail_near: 'Granizo (até 30 km)', heavy_rain: 'Chuva forte', extreme_wind: 'Vento extremo'};
+        const leads = [['0', 'Hoje'], ['1', '+1 dia'], ['2', '+2 dias'], ['3-6', '+3 a 6 dias']];
+        const pct = v => v === null || v === undefined ? '—' : Math.round(v * 100) + '%';
+        const rows = Object.entries(sk.scores || {}).map(([k, v]) => {
+            const cells = leads.map(([lb]) => { const s = (v.by_lead || {})[lb];
+                return s ? `<td>${pct(s.pod)} <span style="color:var(--text-muted)">/ ${pct(s.far)}</span><div style="font-size:10px;color:var(--text-muted)">${s.events} ev. · n=${s.n}</div></td>` : '<td>—</td>'; }).join('');
+            return `<tr><td>${names[k] || esc(k)}</td>${cells}</tr>`; }).join('');
+        const ra = sk.radar_alerts || {};
+        return `
+            <div class="section-title">🎯 Acerto nas previsões de tempestade
+                <span class="section-sub">por antecedência · detectado / alarme falso · aviso = probabilidade ≥ ${sk.alert_threshold_pct || 50}%</span></div>
+            <div class="models-wrap">${rows ? `<table class="models-table"><thead><tr><th>Evento</th>${leads.map(l => `<th>${l[1]}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`
+                : '<div class="search-feedback">Ainda coletando histórico: cada dia previsto é conferido depois com o que ocorreu.</div>'}</div>
+            <div class="skill-note">Detectado = % dos eventos reais que o sistema havia avisado; alarme falso = % dos avisos que não se confirmaram.
+                ${ra.n ? `Alertas de tempestade confirmados pelo radar nas 3 h seguintes: <b>${Math.round((ra.rate || 0) * 100)}%</b> (${ra.confirmed}/${ra.n}).` : 'Confirmação por radar: ainda sem alertas conferidos.'}
+                O evento "real" vem da análise do Open-Meteo, do radar (dBZ) e, onde disponível, dos raios do satélite GOES (GLM); ainda é uma estimativa. "Até 30 km" conta como acerto a tempestade que passou ao lado do ponto.</div>`;
+    }
+
+    function renderHourlySection(ts) {
+        if (!ts || !ts.hourly_today || !ts.hourly_today.length) return '';
+        return `
+            <div class="section-title">🕐 Previsão por Hora (Hoje)</div>
+            <div class="hourly-scroll">
+                ${ts.hourly_today.map(h => `
+                    <div class="hourly-card">
+                        <div class="hourly-time">${esc(h.hour)}</div>
+                        <div class="hourly-icon">${h.weather_icon}</div>
+                        <div class="hourly-temp">${fmtNum(h.temperature, 0)}°</div>
+                        <div class="hourly-precip">💧 ${h.precipitation_probability != null ? Math.round(h.precipitation_probability) : 0}%</div>
+                        ${h.lightning_pct >= 20 ? `<div class="hourly-precip">⚡ ${Math.round(h.lightning_pct)}%</div>` : ''}
+                    </div>`).join('')}
+            </div>`;
+    }
+
+    function renderDailySection(ts) {
+        if (!ts || !ts.daily || !ts.daily.length) return '';
+        const sub = ts.consensus ? `<span class="section-sub">clique em um dia para ver hora a hora · consenso de ${ts.models_used} modelos até o 7º dia</span>` : '';
+        return `
+            <div class="section-title">📅 Próximos Dias (${ts.days_available} dias)${sub}</div>
+            <div class="daily-grid">
+                ${ts.daily.map(d => {
+                    const st = d.storm || {};
+                    const chip = (st.level && st.level !== 'NENHUM' && st.lightning_pct != null)
+                        ? `<div class="storm-chip ${st.level === 'ALTO' ? 'alto' : ''}">⚡ ${Math.round(st.lightning_pct)}% raios${(st.lightning_near_pct != null && st.lightning_near_pct > st.lightning_pct + 5) ? ' (' + Math.round(st.lightning_near_pct) + '% ≤30 km)' : ''}${st.organization && st.organization.startsWith('Ambiente favorável') ? ' · supercélula' : ''}</div>`
+                        : (st.level === 'INDICADO' ? `<div class="storm-chip">⚡ indicado</div>` : '');
+                    return `
+                    <div class="daily-card ${d.is_today ? 'today' : ''} ${d.severe ? 'severe' : ''}" data-date="${d.date}" onclick="openDay('${d.date}')">
+                        <div class="daily-date">${d.is_today ? 'Hoje' : formatDate(d.date)}</div>
+                        <div class="daily-icon">${d.weather_icon}</div>
+                        <div class="daily-desc">${esc(d.weather_description)}</div>
+                        <div class="daily-temps"><span class="daily-max">${fmtNum(d.temp_max, 0)}°</span><span class="daily-min">${fmtNum(d.temp_min, 0)}°</span></div>
+                        <div class="daily-precip">💧 ${d.precipitation_probability_max != null ? Math.round(d.precipitation_probability_max) : 0}% ${d.precipitation_sum != null ? '· ' + fmtNum(d.precipitation_sum, 1) + 'mm' : ''}</div>
+                        ${d.confidence != null ? `<div class="daily-conf">🎯 ${Math.round(d.confidence * 100)}% (${d.models_count} mod.)</div>` : '<div class="daily-conf">modelo único</div>'}
+                        ${chip}
+                        ${d.severe ? `<div class="severe-badge">⚠️ ${esc(d.severe_label)}</div>` : ''}
+                    </div>`;
+                }).join('')}
+            </div>
+            <div id="day-panel"></div>`;
+    }
+
+    // ---- detalhe do dia
+    async function openDay(date) {
+        document.querySelectorAll('.daily-card').forEach(c => c.classList.toggle('selected', c.dataset.date === date));
+        const panel = document.getElementById('day-panel');
+        panel.innerHTML = `<div class="day-panel"><div class="search-feedback">Carregando ${esc(date)}...</div></div>`;
+        const id = currentLocationId;
+        const out = await fetchJson(`/api/forecast/${id}/day/${date}`);
+        if (currentLocationId !== id) return;
+        if (!out) { panel.innerHTML = `<div class="day-panel"><div class="search-feedback error">Não foi possível carregar este dia.</div></div>`; return; }
+        panel.innerHTML = renderDay(out);
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function chartDay(rows) {
+        const W = Math.max(640, rows.length * 28), H = 170, padL = 34, padB = 22, padT = 10;
+        const iw = W - padL - 8, ih = H - padB - padT, n = rows.length;
+        const x = i => padL + (n <= 1 ? iw / 2 : i * iw / (n - 1));
+        const temps = rows.map(r => r.temperature).filter(v => v != null);
+        if (!temps.length) return '';
+        const tmin = Math.floor(Math.min(...temps) - 1), tmax = Math.ceil(Math.max(...temps) + 1);
+        const ty = v => padT + ih - (v - tmin) / Math.max(1, tmax - tmin) * ih;
+        const rmax = Math.max(2, ...rows.map(r => r.precipitation || 0));
+        const sun = Math.max(1, ...rows.map(r => r.solar_radiation || 0));
+        const bw = Math.max(6, iw / n * 0.55);
+        const bars = rows.map((r, i) => { const h = (r.precipitation || 0) / rmax * ih * 0.6;
+            return `<rect x="${x(i) - bw / 2}" y="${padT + ih - h}" width="${bw}" height="${h}" fill="#3b82f6" opacity=".45"/>`; }).join('');
+        const sunPts = rows.map((r, i) => `${x(i)},${padT + ih - (r.solar_radiation || 0) / sun * ih * 0.8}`);
+        const sunArea = sunPts.length ? `<polygon points="${x(0)},${padT + ih} ${sunPts.join(' ')} ${x(n - 1)},${padT + ih}" fill="#f59e0b" opacity=".16"/>` : '';
+        const line = rows.map((r, i) => r.temperature == null ? null : `${x(i)},${ty(r.temperature)}`).filter(Boolean).join(' ');
+        const bolts = rows.map((r, i) => (r.lightning_pct || 0) >= 30 ? `<text x="${x(i)}" y="${padT + 10}" font-size="11" text-anchor="middle">⚡</text>` : '').join('');
+        const labels = rows.map((r, i) => i % 3 === 0 ? `<text x="${x(i)}" y="${H - 6}" font-size="10" fill="#94a3b8" text-anchor="middle">${esc(r.hour.slice(0, 2))}h</text>` : '').join('');
+        const yl = [tmin, Math.round((tmin + tmax) / 2), tmax].map(v => `<text x="${padL - 6}" y="${ty(v) + 3}" font-size="10" fill="#94a3b8" text-anchor="end">${v}°</text>`).join('');
+        return `<div class="chart-wrap"><svg width="${W}" height="${H}" role="img" aria-label="Temperatura, chuva e radiação solar por hora">
+            ${sunArea}${bars}<polyline points="${line}" fill="none" stroke="#e2e8f0" stroke-width="2"/>${bolts}${yl}${labels}</svg>
+            <div class="chart-legend"><span>— temperatura</span><span style="color:#60a5fa">▮ chuva (até ${fmtNum(rmax, 1)} mm/h)</span><span style="color:#fbbf24">▲ radiação solar (até ${fmtNum(sun, 0)} W/m²)</span><span>⚡ risco de raios ≥ 30%</span></div></div>`;
+    }
+
+    function renderDay(out) {
+        const d = out.day, st = d.storm || {}, rows = out.hourly || [];
+        const full = out.source === 'consenso';
+        const acc = d.expected_accuracy || {};
+        const accChips = Object.entries({ temperature: 'Temperatura', precipitation: 'Chuva', wind_speed: 'Vento', humidity: 'Umidade', solar_radiation: 'Radiação' })
+            .filter(([k]) => acc[k] != null).map(([k, l]) => `<span class="chip">${l}: <b>${Math.round(acc[k] * 100)}%</b></span>`).join('');
+        const chips = [
+            `🌡️ <b>${fmtNum(d.temp_max, 0)}°</b> / ${fmtNum(d.temp_min, 0)}°`,
+            `💧 <b>${fmtNum(d.precipitation_sum, 1)} mm</b> (${d.precipitation_probability_max != null ? Math.round(d.precipitation_probability_max) : 0}%)`,
+            d.wind_gusts_max != null ? `💨 rajadas até <b>${fmtNum(d.wind_gusts_max, 0)} km/h</b>` : '',
+            d.solar_energy_kwh_m2 != null ? `☀️ <b>${fmtNum(d.solar_energy_kwh_m2, 1)} kWh/m²</b> de sol (pico ${fmtNum(d.solar_radiation_max, 0)} W/m²)` : '',
+            d.uv_index_max != null ? `UV máx <b>${fmtNum(d.uv_index_max, 1)}</b>` : '',
+            st.lightning_pct != null ? `⚡ raios <b>${Math.round(st.lightning_pct)}%</b>${st.peak_hour ? ' (pico ~' + st.peak_hour + ')' : ''}` : '',
+            st.type ? `⛈️ <b>${esc(st.type)}</b> · risco ${esc(String(st.level).toLowerCase())}` : '',
+            st.organization ? `🌩️ ${esc(st.organization)}` : '',
+            st.cape_max != null ? `CAPE <b>${fmtNum(st.cape_max, 0)}</b> J/kg · cisalh. <b>${fmtNum(st.shear06, 0)}</b> m/s` : '',
+        ].filter(Boolean).map(c => `<span class="chip">${c}</span>`).join('');
+
+        const head = full
+            ? ['Hora', '', 'Temp.', 'Sens.', 'Chuva mm', 'Prob. %', 'Vento', 'Rajada', 'Umid. %', 'Pressão', 'Nuvens %', 'Rad. W/m²', 'UV', 'CAPE', 'Cisalh.', 'Raios %']
+            : ['Hora', '', 'Temp.', 'Chuva mm', 'Prob. %', 'Vento', 'Umid. %'];
+        const body = rows.map(r => {
+            const base = `<td>${esc(r.hour)}</td><td>${r.weather_icon || ''}</td><td>${fmtNum(r.temperature, 1)}°</td>`;
+            if (!full) return `<tr>${base}<td>${fmtNum(r.precipitation, 1)}</td><td>${fmtNum(r.precipitation_probability, 0)}</td><td>${fmtNum(r.wind_speed, 0)}</td><td>${fmtNum(r.humidity, 0)}</td></tr>`;
+            return `<tr>${base}<td>${fmtNum(r.apparent_temperature, 1)}°</td><td>${fmtNum(r.precipitation, 1)}</td><td>${fmtNum(r.precipitation_probability, 0)}</td>
+                <td>${fmtNum(r.wind_speed, 0)} ${compass(r.wind_direction)}</td><td>${fmtNum(r.wind_gusts, 0)}</td><td>${fmtNum(r.humidity, 0)}</td>
+                <td>${fmtNum(r.pressure, 1)}</td><td>${fmtNum(r.cloud_cover, 0)}</td><td>${fmtNum(r.solar_radiation, 0)}</td><td>${fmtNum(r.uv_index, 1)}</td><td>${fmtNum(r.cape, 0)}</td><td>${fmtNum(r.shear06, 0)}</td>
+                <td class="${(r.lightning_pct || 0) >= 40 ? 'hot' : ''}">${fmtNum(r.lightning_pct, 0)}</td></tr>`;
+        }).join('');
+        return `
+            <div class="day-panel">
+                <h3>${d.weather_icon} ${esc(longDate(d.date))} — ${esc(d.weather_description)}</h3>
+                <div class="chips">${chips}</div>
+                ${accChips ? `<div class="chips"><span class="chip">Acerto histórico para esta antecedência (~${Math.round((d.horizon_h || 0) / 24)} dia(s)):</span>${accChips}</div>` : ''}
+                ${full ? chartDay(rows) : `<div class="search-feedback">Este dia está além da janela dos modelos globais (7 dias): mostrando só o modelo único, sem aprendizado.</div>`}
+                <div class="hour-table-wrap"><table class="hour-table"><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>
+            </div>`;
+    }
+
+    // ---- aprendizado
+    function renderSkill(data) {
+        const sk = data.skill;
+        if (!sk) return '';
+        const B = ['0-3h', '3-12h', '12-48h', '48-168h'];
+        const rows = Object.entries(sk.vars).map(([k, v]) => {
+            const cells = B.map(b => { const s = v.buckets[b];
+                if (!s) return '<td>—</td>';
+                const gain = s.ensemble_hit_rate != null ? ` <span title="média simples dos modelos" style="color:var(--text-muted)">(${Math.round(s.ensemble_hit_rate * 100)}%)</span>` : '';
+                return `<td class="${rateClass(s.hit_rate)}">${Math.round(s.hit_rate * 100)}%${gain}${s.correction_active ? ' ✓' : ''}<div style="font-size:10px;color:var(--text-muted)">n=${s.n}</div></td>`; }).join('');
+            return `<tr><td>${esc(v.label)} <span style="color:var(--text-muted);font-weight:400">±${v.tolerance}${esc(v.unit)}</span></td>${cells}</tr>`;
+        }).join('');
+        const red = sk.error_reduction_vs_consensus;
+        const rd = sk.radar || {};
+        return `
+            <div class="section-title">🧠 Aprendizado deste local
+                <span class="section-sub">${sk.verified} previsões já conferidas com o que de fato aconteceu</span></div>
+            <div class="models-wrap"><table class="models-table skill-table">
+                <thead><tr><th>Variável (tolerância)</th>${B.map(b => `<th>${b}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>
+            <div class="skill-note">
+                Cada célula é a % de horas em que a previsão ficou dentro da tolerância, por antecedência. Entre parênteses: a média simples dos modelos. ✓ = a correção aprendida já provou ser melhor nas previsões conferidas.
+                ${red != null ? `Redução média do erro frente à média dos modelos: <b>${Math.round(red * 100)}%</b>.` : 'Ainda sem dados suficientes para medir o ganho do aprendizado.'}
+                ${rd.n ? ` Concordância modelo × radar (chuva agora): <b>${Math.round((rd.agreement || 0) * 100)}%</b> em ${rd.n} checagens.` : ''}
+                A "verdade" usada é a análise do Open-Meteo para as horas que passaram, não uma estação física.
+            </div>`;
+    }
+
+    function renderModelsSection(data) {
+        const det = data.models_detail;
+        if (!det || !Object.keys(det).length) return '';
+        const rows = Object.entries(det).sort((a, b) => (b[1].weight_pct || 0) - (a[1].weight_pct || 0)).map(([k, v]) => `
+            <tr><td>${esc(v.label || k)}</td><td>${fmtNum(v.temperature, 1)}°C</td><td>${fmtNum(v.humidity, 0)}%</td>
+            <td>${fmtNum(v.precipitation, 1)} mm</td><td>${fmtNum(v.wind_speed, 0)} km/h</td><td>${fmtNum(v.solar_radiation, 0)} W/m²</td>
+            <td><span class="weight-pill">${fmtNum(v.weight_pct, 0)}%</span></td></tr>`).join('');
+        return `
+            <div class="section-title">🧮 Modelos Climáticos (${Object.keys(det).length})
+                <span class="section-sub">o peso de cada modelo é ajustado pelo histórico de acertos nesta cidade</span></div>
+            <div class="models-wrap"><table class="models-table">
+                <thead><tr><th>Modelo</th><th>Temp.</th><th>Umidade</th><th>Chuva 24h</th><th>Vento</th><th>Radiação</th><th>Peso</th></tr></thead>
+                <tbody>${rows}</tbody></table></div>`;
+    }
+
+    function renderForecast(location, data, timeseries, radar) {
+        const ago = minutesAgo(data.generated_at);
+        const upd = ago === null ? 'Atualizado agora' : ago < 1 ? 'Atualizado agora há pouco' : `Atualizado há ${ago} min`;
+        const l = data.learning || {};
+        document.getElementById('main-content').innerHTML = `
+            <div class="forecast-header">
+                <div>
+                    <div class="forecast-title">${esc(location.city_name)}</div>
+                    <div class="forecast-subtitle">${upd} • renova sozinho a cada ${data.update_interval_minutes || 60} min, mesmo com você fora
+                        ${data.models_total ? `• 🌐 ${data.models_total} modelos` : ''}
+                        ${l.verified > 0 ? `• 🧠 ${l.verified} verificações` : '• 🧠 aprendendo (primeiras verificações em ~1 h)'}</div>
+                </div>
+                <button class="btn-refresh" onclick="selectLocation(${location.id}, true)">🔄 Atualizar agora</button>
+            </div>
+            <div class="section-title" style="margin-top:0">📍 Agora <span class="section-sub">cada cartão mostra quanto o sistema acertou essa variável nas últimas horas</span></div>
+            ${renderNowCards(data)}
+            ${renderStorms(data)}
+            ${renderRadarSection(radar)}
+            ${renderHourlySection(timeseries)}
+            ${renderDailySection(timeseries)}
+            ${renderStormSkill(data)}
+            ${renderSkill(data)}
+            ${renderModelsSection(data)}
+            <div class="ia-box">
+                <div class="ia-box-title">🧠 Análise por IA <span id="ia-box-meta" style="font-weight:400;font-size:11px;color:var(--text-muted)"></span></div>
+                <div class="ia-box-content" id="ia-box-content">${data.ia_analysis ? esc(data.ia_analysis) : 'Gerando análise...'}</div>
+            </div>`;
+    }
+</script>
+</body>
+</html>

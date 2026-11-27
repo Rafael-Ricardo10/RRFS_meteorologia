@@ -1,0 +1,918 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — RRFS Meteorologia{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+.stat-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 4px;
+  transition: border-color .2s, transform .15s;
+}
+.stat-card.clicavel { cursor: pointer; }
+.stat-card.clicavel:hover { border-color: var(--accent); transform: translateY(-1px); }
+.stat-valor { font-size: 40px; font-weight: 700; line-height: 1; letter-spacing: -1px; }
+.stat-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; font-weight: 500; margin-top: 2px; }
+.stat-sub   { font-size: 12px; color: var(--text2); margin-top: 5px; }
+
+#banner-critico {
+  background: rgba(248,81,73,.07);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  padding: 12px 16px; margin-bottom: 14px; display: none;
+  animation: blink-borda 2.5s ease-in-out infinite;
+}
+@keyframes blink-borda {
+  0%,100% { border-color: var(--danger); }
+  50%      { border-color: rgba(248,81,73,.25); }
+}
+.banner-titulo { font-weight: 700; font-size: 14px; color: var(--danger); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+.banner-item   { font-size: 12px; padding: 3px 0; display: flex; align-items: flex-start; gap: 8px; line-height: 1.5; }
+
+#resumo-box {
+  border-radius: var(--radius); padding: 12px 16px; margin-bottom: 14px;
+  font-size: 13px; border: 1px solid var(--border); background: var(--bg2);
+  display: flex; align-items: flex-start; gap: 10px;
+  cursor: pointer; transition: border-color .2s;
+}
+#resumo-box:hover { border-color: var(--accent); }
+.resumo-emoji { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+.resumo-txt   { flex: 1; line-height: 1.6; }
+.resumo-btn   {
+  font-size: 11px; color: var(--accent2); white-space: nowrap;
+  flex-shrink: 0; margin-top: 3px; padding: 3px 8px;
+  border: 1px solid rgba(56,139,253,.4); border-radius: var(--radius-sm);
+}
+
+#mini-mapa-div {
+  height: 300px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  position: relative;
+  /* NÃO usar overflow:hidden — quebra o Leaflet */
+}
+.mapa-overlay-info {
+  position: absolute; bottom: 8px; left: 8px; z-index: 1000;
+  background: rgba(13,17,23,.85); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 5px 9px;
+  font-size: 11px; color: var(--text2); pointer-events: none; line-height: 1.6;
+}
+
+.aprox-card {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 12px;
+  margin-bottom: 8px; cursor: pointer; transition: border-color .15s;
+}
+.aprox-card:hover { border-color: var(--warning); }
+.aprox-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.aprox-tipo   { font-weight: 600; font-size: 13px; display: flex; gap: 6px; }
+.aprox-tempo  { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: rgba(210,153,34,.15); color: var(--warning); }
+.aprox-tempo.urgente { background: rgba(248,81,73,.15); color: var(--danger); animation: pulse-badge 1.5s infinite; }
+.aprox-detalhe { font-size: 12px; color: var(--text2); line-height: 1.6; }
+
+.hora-row {
+  display: grid;
+  grid-template-columns: 50px 24px 54px 1fr 62px 62px;
+  gap: 5px; align-items: center; padding: 5px 8px;
+  border-radius: var(--radius-sm); cursor: pointer; transition: background .1s; font-size: 12px;
+}
+.hora-row:hover { background: var(--bg3); }
+.hora-row.atual { background: rgba(56,139,253,.07); border-left: 2px solid var(--accent2); padding-left: 6px; }
+
+.dia-card {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 8px;
+  text-align: center; cursor: pointer;
+  transition: border-color .15s, transform .15s; min-width: 82px;
+}
+.dia-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.dc-nome  { font-size: 10px; color: var(--text2); margin-bottom: 4px; }
+.dc-ico   { font-size: 22px; margin-bottom: 4px; line-height: 1; }
+.dc-max   { font-weight: 700; font-size: 14px; }
+.dc-min   { font-size: 12px; color: var(--text2); }
+.dc-extra { font-size: 10px; color: var(--info); margin-top: 3px; }
+.dia-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(82px, 1fr)); gap: 7px; }
+
+.det-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.det-item:last-child { border-bottom: none; }
+.det-label { color: var(--text2); font-size: 12px; }
+.det-valor { font-weight: 600; }
+
+.gauge-wrap { margin: 7px 0; }
+.gauge-lbl  { display: flex; justify-content: space-between; font-size: 10px; color: var(--text2); margin-bottom: 3px; }
+.gauge-bar  { height: 8px; border-radius: 4px; background: linear-gradient(to right, var(--success) 0%, var(--warning) 45%, var(--danger) 75%, var(--extreme) 100%); position: relative; }
+.gauge-pin  { position: absolute; top: -3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 2px solid var(--bg); transform: translateX(-50%); transition: left .6s; box-shadow: 0 1px 4px rgba(0,0,0,.5); }
+
+.cape-col  { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 24px; cursor: pointer; }
+.cape-col:hover .cape-inner { filter: brightness(1.4); }
+.cape-vlbl { font-size: 9px; color: var(--text2); min-height: 11px; }
+.cape-outer{ width: 16px; height: 56px; background: var(--bg3); border-radius: 3px; position: relative; overflow: hidden; }
+.cape-inner{ position: absolute; bottom: 0; width: 100%; border-radius: 3px; transition: height .4s; }
+.cape-hlbl { font-size: 9px; color: var(--text3); }
+
+.skel {
+  background: linear-gradient(90deg, var(--bg3) 25%, var(--bg4) 50%, var(--bg3) 75%);
+  background-size: 200% 100%; animation: skel 1.5s infinite; border-radius: var(--radius-sm);
+}
+@keyframes skel { to { background-position: -200% 0; } }
+
+.seta { display: inline-block; transition: transform .3s; }
+
+.sec-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.sec-title  { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; display: flex; align-items: center; gap: 6px; }
+
+#notif-wrap {
+  position: fixed; top: 64px; right: 16px; z-index: 500;
+  max-width: 320px; display: flex; flex-direction: column; gap: 6px; pointer-events: none;
+}
+.notif-item { background: var(--bg2); border: 1px solid var(--danger); border-radius: var(--radius); padding: 11px 13px; font-size: 12px; box-shadow: var(--shadow); pointer-events: all; animation: slideIn .3s ease; }
+@keyframes slideIn { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.notif-fechar { float: right; cursor: pointer; background: none; border: none; color: var(--text2); font-size: 15px; padding: 0; }
+
+.empty-wrap { text-align: center; padding: 50px 20px; }
+.empty-wrap .ei { font-size: 50px; margin-bottom: 14px; }
+.empty-wrap h3  { font-size: 17px; margin-bottom: 8px; }
+.empty-wrap p   { color: var(--text2); margin-bottom: 18px; font-size: 13px; }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div id="notif-wrap"></div>
+
+<div class="container">
+
+  {% if not tem_localizacao %}
+  <div class="card empty-wrap">
+    <div class="ei">📍</div>
+    <h3>Configure sua localização</h3>
+    <p>Para ver condições meteorológicas e receber alertas,<br>
+       configure sua localização nas configurações.</p>
+    <a class="btn btn-primary" href="/configuracoes">⚙️ Configurar agora</a>
+  </div>
+
+  {% else %}
+
+  <div class="sec-header" style="margin-bottom:12px">
+    <div>
+      <h2 style="font-size:18px;font-weight:700;margin-bottom:2px">
+        📍 {{ user.localizacao.cidade }}{% if user.localizacao.estado %},
+        {{ user.localizacao.estado }}{% endif %}
+      </h2>
+      <div class="text-muted text-xs" id="ts-atualizacao">Carregando...</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-sm" onclick="explicarResumo()">📊 Situação</button>
+      <button class="btn btn-sm btn-primary" onclick="atualizarDados()">🔄 Atualizar</button>
+    </div>
+  </div>
+
+  <div id="banner-critico">
+    <div class="banner-titulo">🚨 ALERTAS CRÍTICOS ATIVOS</div>
+    <div id="banner-lista"></div>
+  </div>
+
+  <div id="resumo-box" onclick="explicarResumo()" title="Clique para entender">
+    <div class="resumo-emoji" id="resumo-emoji">⏳</div>
+    <div class="resumo-txt"   id="resumo-txt">Analisando condições...</div>
+    <div class="resumo-btn">🔍 Explicar</div>
+  </div>
+
+  <!-- Skeleton -->
+  <div id="skeleton-dash">
+    <div class="grid grid-4" style="margin-bottom:14px">
+      {% for _ in range(4) %}
+      <div class="stat-card">
+        <div class="skel" style="height:40px;width:70%;margin-bottom:8px"></div>
+        <div class="skel" style="height:11px;width:50%"></div>
+        <div class="skel" style="height:11px;width:38%;margin-top:5px"></div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="skel" style="height:300px;border-radius:var(--radius);margin-bottom:14px"></div>
+  </div>
+
+  <!-- Conteúdo real -->
+  <div id="conteudo-dash" style="display:none">
+
+    <div class="grid grid-4" style="margin-bottom:14px" id="stats-grid"></div>
+
+    <!-- Mapa -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="sec-header">
+        <div class="sec-title">🗺️ Radar ao Vivo &amp; Sistemas Aproximando</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm" onclick="atualizarMiniRadar()">🔄 Radar</button>
+          <a href="/radar" class="btn btn-sm">📡 Radar completo →</a>
+        </div>
+      </div>
+      <div style="position:relative">
+        <div id="mini-mapa-div"></div>
+        <div class="mapa-overlay-info" id="mapa-overlay">📡 Inicializando...</div>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-top:6px;display:flex;flex-wrap:wrap;gap:12px">
+        <span>📍 <span style="color:var(--accent2)">●</span> Sua localização</span>
+        <span>— — círculo azul = 50 km</span>
+        <span>🔴 seta/círculo = sistema detectado</span>
+        <span>➤ direção de deslocamento</span>
+      </div>
+      <div id="sistemas-aprox" style="margin-top:10px"></div>
+    </div>
+
+    <div class="grid grid-2" style="margin-bottom:14px">
+      <div class="card">
+        <div class="sec-header">
+          <div class="sec-title">⚠️ Alertas — 24h</div>
+          <button class="btn btn-sm" onclick="explicarCondicaoAtual()">🔍</button>
+        </div>
+        <div id="alertas-lista">
+          <div class="text-center" style="padding:20px"><div class="spinner"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec-header">
+          <div class="sec-title">🕐 Próximas Horas</div>
+          <span class="text-xs text-muted">Clique para explicar</span>
+        </div>
+        <div id="horaria-lista" style="max-height:340px;overflow-y:auto;margin:0 -4px"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+      <div class="sec-header">
+        <div class="sec-title">📅 Previsão 7 Dias</div>
+        <a href="/previsao" class="btn btn-sm">Ver detalhes →</a>
+      </div>
+      <div class="dia-grid" id="dia-grid"></div>
+    </div>
+
+    <div class="grid grid-3" style="margin-bottom:14px">
+      <div class="card"><div class="card-title">💨 Vento &amp; Rajadas</div><div id="det-vento"></div></div>
+      <div class="card"><div class="card-title">🌧️ Precipitação</div><div id="det-prec"></div></div>
+      <div class="card"><div class="card-title">⛈️ Instabilidade</div><div id="det-inst"></div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+      <div class="sec-header">
+        <div class="sec-title">📈 Energia Convectiva 24h (CAPE)</div>
+        <span class="text-xs text-muted" data-tip="CAPE: energia para tempestades. >1000 J/kg = atenção">❓ O que é?</span>
+      </div>
+      <div id="cape-tl" style="overflow-x:auto"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;font-size:10px;color:var(--text2)">
+        <span><span style="color:var(--success)">■</span> Baixo &lt;300</span>
+        <span><span style="color:var(--warning)">■</span> Moderado 300-1000</span>
+        <span><span style="color:var(--danger)">■</span> Alto 1000-2500</span>
+        <span><span style="color:var(--extreme)">■</span> Severo &gt;2500</span>
+      </div>
+    </div>
+
+  </div><!-- /conteudo-dash -->
+  {% endif %}
+</div>
+{% endblock %}
+
+
+{% block extra_scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+'use strict';
+
+const LAT    = {{ user.localizacao.lat | default(0) | float }};
+const LON    = {{ user.localizacao.lon | default(0) | float }};
+const TEM_LOC= {{ 'true' if tem_localizacao else 'false' }};
+const WMO    = {{ wmo_map | tojson }};
+const CIDADE = {{ (user.localizacao.cidade or '') | tojson }};
+const CFG_AL = {{ (user.config_alertas or {}) | tojson }};
+
+let _meteo    = null, _alertas  = [], _idxAtual = 0;
+let _mapa     = null, _radarLayer = null, _radarUrl = null;
+let _grpAlert = null, _grpSetas   = null;
+let _notifSet = new Set();
+
+/* ── Utils ─────────────────────────────────────────────────── */
+function idxAtualDe(times) {
+  const s = new Date().toISOString().substr(0, 13);
+  const i = (times||[]).findIndex(t => t.substr(0,13)===s);
+  return i >= 0 ? i : 0;
+}
+function corTemp(t) {
+  if (t==null) return 'var(--text2)';
+  if (t<=0)  return '#74c0fc';
+  if (t<=10) return '#a5d8ff';
+  if (t<=18) return '#94d82d';
+  if (t<=26) return 'var(--success)';
+  if (t<=33) return 'var(--warning)';
+  if (t<=38) return '#fd7e14';
+  return 'var(--danger)';
+}
+function setaDe(g) {
+  if (g==null) return '';
+  return ['↑','↗','→','↘','↓','↙','←','↖'][Math.round(g/45)%8];
+}
+function nomeDe(g) {
+  if (g==null) return '--';
+  return ['N','NE','L','SE','S','SO','O','NO'][Math.round(g/45)%8];
+}
+function nomeEvento(tipo) {
+  return {tempestade:'Tempestade',chuva_forte:'Chuva Forte',
+          chuva:'Chuva',vento_forte:'Vento Forte',
+          tornado:'Tornado (condições)',microburst:'Microburst',
+          raio:'Raios',granizo:'Granizo',furacao:'Furacão'}[tipo]
+         || (tipo||'').replace(/_/g,' ');
+}
+function angulo(la1,lo1,la2,lo2) {
+  return Math.atan2(lo2-lo1, la2-la1)*180/Math.PI;
+}
+function destino(lat,lon,dirG,distKm) {
+  if (dirG==null||distKm<=0) return {lat,lon};
+  const R=6371,d=distKm/R,b=dirG*Math.PI/180;
+  const la1=lat*Math.PI/180,lo1=lon*Math.PI/180;
+  const la2=Math.asin(Math.sin(la1)*Math.cos(d)+Math.cos(la1)*Math.sin(d)*Math.cos(b));
+  const lo2=lo1+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(la1),Math.cos(d)-Math.sin(la1)*Math.sin(la2));
+  return {lat:la2*180/Math.PI,lon:lo2*180/Math.PI};
+}
+
+/* ════════════════════════════════════════════════════════════
+   ATUALIZAR DADOS
+════════════════════════════════════════════════════════════ */
+async function atualizarDados() {
+  if (!TEM_LOC) return;
+  let meteo=null, alertas={alertas:[]};
+  try {
+    const [rM,rA] = await Promise.all([
+      fetch(`/api/meteo?lat=${LAT}&lon=${LON}`).then(r=>r.json()),
+      fetch(`/api/alertas?lat=${LAT}&lon=${LON}`).then(r=>r.json()),
+    ]);
+    meteo=rM; alertas=rA;
+  } catch(e) {
+    console.error('[RRFS] fetch:', e);
+    mostrarErro('Erro ao buscar dados. Verifique a conexão.');
+    return;
+  }
+  if (!meteo||meteo.erro) { mostrarErro(meteo?.erro||'Sem dados.'); return; }
+
+  _meteo   = meteo;
+  _alertas = alertas.alertas||[];
+  _idxAtual= idxAtualDe(meteo.hourly?.time);
+
+  renderStats(meteo);
+  renderHoraria(meteo);
+  renderDiaria(meteo);
+  renderAlertas(_alertas);
+  renderDetalhes(meteo);
+  renderCape(meteo);
+  renderBanner(_alertas);
+
+  atualizarMiniRadar().catch(e=>console.warn('[RRFS] radar:',e));
+  detectarSistemas(meteo, _alertas);
+
+  fetch('/api/explicar/resumo').then(r=>r.json()).then(renderResumo).catch(()=>renderResumo(null));
+
+  const at = meteo._atualizado ? new Date(meteo._atualizado) : new Date();
+  document.getElementById('ts-atualizacao').textContent =
+    `Atualizado: ${at.toLocaleString('pt-BR')} · próxima em 5 min`;
+
+  document.getElementById('skeleton-dash').style.display = 'none';
+  document.getElementById('conteudo-dash').style.display = 'block';
+
+  // Recalcula tamanho do mapa após o div ficar visível
+  if (_mapa) setTimeout(() => _mapa.invalidateSize(), 150);
+}
+
+function mostrarErro(msg) {
+  document.getElementById('skeleton-dash').style.display = 'none';
+  document.getElementById('conteudo-dash').style.display = 'block';
+  document.getElementById('resumo-emoji').textContent = '❌';
+  document.getElementById('resumo-txt').textContent   = '❌ ' + msg;
+}
+
+/* ════════════════════════════════════════════════════════════
+   MAPA
+════════════════════════════════════════════════════════════ */
+function iniciarMapa() {
+  if (_mapa || !TEM_LOC || typeof L === 'undefined') return;
+  try {
+    _mapa = L.map('mini-mapa-div', {
+      zoomControl: true, attributionControl: true,
+      scrollWheelZoom: true, dragging: true,
+      minZoom: 3, maxZoom: 10,
+    }).setView([LAT, LON], 7);   // zoom 7 — compatível com RainViewer
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+      maxZoom: 18,
+      className: 'osm-dark-d',
+    }).addTo(_mapa);
+
+    const css = document.createElement('style');
+    css.textContent = '.osm-dark-d{filter:invert(1) hue-rotate(180deg) brightness(.82) contrast(.88) saturate(.9)}';
+    document.head.appendChild(css);
+
+    // Marcador com pulso
+    const ico = L.divIcon({
+      className: '',
+      html: `<div style="width:14px;height:14px;background:#388bfd;
+               border-radius:50%;border:2px solid #fff;
+               animation:pm 2s ease-out infinite;
+               box-shadow:0 0 0 0 rgba(56,139,253,.7)">
+             </div>
+             <style>@keyframes pm{
+               0%{box-shadow:0 0 0 0 rgba(56,139,253,.7)}
+               70%{box-shadow:0 0 0 14px rgba(56,139,253,0)}
+               100%{box-shadow:0 0 0 0 rgba(56,139,253,0)}
+             }</style>`,
+      iconSize:[14,14], iconAnchor:[7,7],
+    });
+    L.marker([LAT,LON],{icon:ico,zIndexOffset:1000})
+      .addTo(_mapa)
+      .bindPopup(`<b>📍 ${CIDADE||'Sua localização'}</b>`);
+
+    // Círculo 50 km
+    L.circle([LAT,LON],{
+      radius:50000,color:'#388bfd',weight:1.5,
+      opacity:.5,fillOpacity:.025,dashArray:'7,5',
+    }).addTo(_mapa);
+
+    _grpAlert = L.layerGroup().addTo(_mapa);
+    _grpSetas = L.layerGroup().addTo(_mapa);
+
+    atualizarOverlay('📡 Buscando radar...');
+    setTimeout(() => { if (_mapa) _mapa.invalidateSize(); }, 400);
+  } catch(e) { console.error('[RRFS] iniciarMapa:', e); }
+}
+
+function atualizarOverlay(txt) {
+  const el = document.getElementById('mapa-overlay');
+  if (el) el.innerHTML = txt;
+}
+
+async function atualizarMiniRadar() {
+  if (!_mapa) return;
+  try {
+    const dados  = await fetch('/api/radar').then(r=>r.json());
+    const frames = dados.passado || [];
+    if (!frames.length) { atualizarOverlay('⚠️ Sem dados de radar'); return; }
+
+    const url = frames[frames.length-1];
+    if (url === _radarUrl) return;
+    _radarUrl = url;
+
+    if (_radarLayer) { _mapa.removeLayer(_radarLayer); _radarLayer=null; }
+
+    // RainViewer: tiles 512px, zoom máximo 6
+    // zoomOffset:-1 corrige "Zoom Level not supported"
+    _radarLayer = L.tileLayer(url, {
+      opacity:           0.72,
+      zIndex:            10,
+      tileSize:          512,
+      zoomOffset:        -1,
+      maxZoom:           6,
+      maxNativeZoom:     6,
+      updateWhenZooming: false,
+      keepBuffer:        2,
+    }).addTo(_mapa);
+
+    atualizarOverlay(
+      `📡 Radar ao vivo (RainViewer — gratuito)<br>` +
+      `🕐 ${new Date().toLocaleTimeString('pt-BR')}`
+    );
+  } catch(e) {
+    atualizarOverlay('❌ Erro ao carregar radar');
+    console.warn('[RRFS] miniRadar:', e);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   DETECÇÃO DE SISTEMAS APROXIMANDO
+════════════════════════════════════════════════════════════ */
+function detectarSistemas(meteo, listaAlertas) {
+  if (!_mapa) return;
+  if (_grpAlert) _grpAlert.clearLayers();
+  if (_grpSetas) _grpSetas.clearLayers();
+
+  const h=meteo.hourly||{}, times=h.time||[], eventos=[];
+
+  for (let i=_idxAtual+1; i<Math.min(_idxAtual+13,times.length); i++) {
+    const dH   = i-_idxAtual;
+    const cape = (h.cape||[])[i]??0;
+    const prec = (h.precipitation||[])[i]??0;
+    const gust = (h.wind_gusts_10m||[])[i]??0;
+    const wmoV = (h.weather_code||[])[i]??0;
+    const dir  = (h.wind_direction_10m||[])[i]??null;
+    const v10  = (h.wind_speed_10m||[])[i]??0;
+    const v80  = (h.wind_speed_80m||[])[i]??v10;
+    const vel  = (v10+v80)/2;
+
+    let tipo=null,intens=0,ico='',cor='';
+    if      (wmoV>=95||cape>=1500) {tipo='tempestade';intens=3;ico='⛈️';cor='#f85149';}
+    else if (wmoV>=80||(prec>=10&&cape>=400)) {tipo='chuva_forte';intens=2;ico='🌧️';cor='#d29922';}
+    else if (prec>=2||wmoV>=61)  {tipo='chuva';intens=1;ico='🌦️';cor='#58a6ff';}
+    else if (gust>=55)           {tipo='vento_forte';intens=2;ico='💨';cor='#d29922';}
+    if (!tipo) continue;
+
+    const ult=eventos[eventos.length-1];
+    if (ult&&ult.tipo===tipo&&(i-ult.idx)<=2) continue;
+
+    const distKm = Math.max(1, Math.round(dH*vel));
+    const orig   = destino(LAT,LON,dir,distKm);
+
+    eventos.push({tipo,intens,ico,cor,
+      hora:times[i],idx:i,dH,dir,vel:Math.round(vel),distKm,
+      cape:Math.round(cape),prec:prec.toFixed(1),
+      gust:Math.round(gust),wmoV,latO:orig.lat,lonO:orig.lon});
+  }
+
+  eventos.forEach((ev,ordem) => desenharNoMapa(ev,ordem));
+  renderSistemasAprox(eventos);
+  checarNotificacoes(eventos);
+}
+
+function desenharNoMapa(ev,ordem) {
+  if (!_grpAlert||!_grpSetas) return;
+  const op = Math.max(0.3, 1-ordem*.18);
+  try {
+    const icoDiv = L.divIcon({
+      className:'',
+      html:`<div style="font-size:${14+ev.intens*4}px;
+                        filter:drop-shadow(0 0 4px ${ev.cor});
+                        opacity:${op}">${ev.ico}</div>`,
+      iconSize:[28,28],iconAnchor:[14,14],
+    });
+    L.marker([ev.latO,ev.lonO],{icon:icoDiv})
+      .addTo(_grpAlert)
+      .bindPopup(
+        `<b>${ev.ico} ${nomeEvento(ev.tipo)}</b><br>` +
+        `Chegada: ${formatHora(ev.hora)}<br>` +
+        `Dist.: ~${ev.distKm}km · Vel.: ~${ev.vel}km/h<br>` +
+        `Dir.: ${nomeDe(ev.dir)}`+
+        (ev.cape>0?`<br>CAPE: ${ev.cape} J/kg`:'')+
+        (ev.prec>0?`<br>Chuva: ${ev.prec} mm/h`:'')
+      );
+  } catch(e){}
+  try {
+    L.polyline([[ev.latO,ev.lonO],[LAT,LON]],{
+      color:ev.cor,weight:2.2,opacity:op*.8,dashArray:'8,6',
+    }).addTo(_grpSetas);
+    const latM=(ev.latO+LAT)/2, lonM=(ev.lonO+LON)/2;
+    const ang=angulo(ev.latO,ev.lonO,LAT,LON);
+    const setaI=L.divIcon({
+      className:'',
+      html:`<div style="font-size:16px;transform:rotate(${ang}deg);
+                        color:${ev.cor};opacity:${op}">➤</div>`,
+      iconSize:[18,18],iconAnchor:[9,9],
+    });
+    L.marker([latM,lonM],{icon:setaI,zIndexOffset:200})
+      .addTo(_grpSetas)
+      .bindPopup(`<b>${ev.ico} ${nomeEvento(ev.tipo)}</b><br>~${ev.vel}km/h · ${nomeDe(ev.dir)}<br>Chegada: ${formatHora(ev.hora)}`);
+  } catch(e){}
+  if (ev.intens>=2) {
+    try {
+      L.circle([LAT,LON],{
+        radius:ev.intens===3?60000:35000,
+        color:ev.cor,weight:1.5,opacity:.5*op,fillOpacity:.025,dashArray:'10,7',
+      }).addTo(_grpAlert);
+    } catch(e){}
+  }
+}
+
+function renderSistemasAprox(eventos) {
+  const el=document.getElementById('sistemas-aprox');
+  if (!el) return;
+  if (!eventos.length) {
+    el.innerHTML=`<div style="padding:8px 0;font-size:13px;color:var(--success);
+      display:flex;align-items:center;gap:8px">
+      ✅ Nenhum sistema significativo detectado nas próximas 12h</div>`;
+    return;
+  }
+  let html=`<div style="font-size:12px;font-weight:600;color:var(--text2);
+    text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+    🛰️ Sistemas Detectados — Trajetória &amp; Chegada</div>`;
+  eventos.forEach(ev=>{
+    const urg=ev.dH<=2;
+    const prog=Math.min(100,Math.max(5,100-(ev.distKm/200)*100));
+    html+=`<div class="aprox-card" onclick="abrirDetalheEvento(${JSON.stringify(ev).replace(/</g,'\\x3c')})">
+      <div class="aprox-header">
+        <div class="aprox-tipo">${ev.ico} ${nomeEvento(ev.tipo)}</div>
+        <div class="aprox-tempo ${urg?'urgente':''}">
+          ${ev.dH<=0?'⚡ Chegando agora':ev.dH===1?'⏰ ~1h':`⏰ ~${ev.dH}h (${formatHora(ev.hora)})`}
+        </div>
+      </div>
+      <div class="aprox-detalhe">
+        ${ev.dir!=null?`<span class="seta" style="transform:rotate(${ev.dir}deg)">➤</span> ${nomeDe(ev.dir)} (${Math.round(ev.dir)}°) · `:''}
+        ~${ev.distKm}km · ~${ev.vel}km/h
+        ${ev.cape>300?` · CAPE ${ev.cape} J/kg`:''}
+        ${ev.prec>0?` · ${ev.prec}mm/h`:''}
+        ${ev.gust>0?` · raj.${ev.gust}km/h`:''}
+      </div>
+      <div style="margin-top:6px;height:3px;background:var(--bg2);border-radius:2px">
+        <div style="height:100%;width:${prog}%;background:${ev.cor};border-radius:2px;transition:width .5s"></div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">🔍 Clique para explicação</div>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
+function abrirDetalheEvento(ev) {
+  explicarAlerta({
+    tipo:ev.tipo,icone:ev.ico,
+    severidade:ev.intens>=3?'PERIGO':ev.intens>=2?'ALERTA':'ATENCAO',
+    hora:ev.hora,concordancia:0.75,n_modelos:1,
+    descricao:`${nomeEvento(ev.tipo)} a ~${ev.distKm}km, chegando em ~${ev.dH}h a ~${ev.vel}km/h de ${nomeDe(ev.dir)}`,
+    dados:{vel_kmh:ev.vel,dist_km:ev.distKm,dir_graus:ev.dir,dir_nome:nomeDe(ev.dir),delta_h:ev.dH,cape:ev.cape},
+  });
+}
+
+/* ════════════════════════════════════════════════════════════
+   NOTIFICAÇÕES
+════════════════════════════════════════════════════════════ */
+function checarNotificacoes(eventos) {
+  const conds=(CFG_AL.condicoes_alerta||[]);
+  eventos.forEach(ev=>{
+    const chave=`${ev.tipo}_${ev.hora}`;
+    if (_notifSet.has(chave)) return;
+    let disp=(ev.intens>=3&&ev.dH<=3)||(ev.intens>=2&&ev.dH<=1);
+    conds.forEach(c=>{
+      if (c.variavel==='precipitation'&&parseFloat(ev.prec)>=c.valor) disp=true;
+      if (c.variavel==='wind_gusts_10m'&&ev.gust>=c.valor) disp=true;
+      if (c.variavel==='cape'&&ev.cape>=c.valor) disp=true;
+    });
+    if (!disp) return;
+    _notifSet.add(chave);
+    mostrarNotif(ev);
+  });
+}
+function mostrarNotif(ev) {
+  const wrap=document.getElementById('notif-wrap');
+  const div=document.createElement('div');
+  div.className='notif-item';
+  div.style.borderColor=ev.cor;
+  const evJ=JSON.stringify(ev).replace(/</g,'\\x3c');
+  div.innerHTML=`
+    <button class="notif-fechar" onclick="this.closest('.notif-item').remove()">✕</button>
+    <div style="font-weight:700;color:${ev.cor};margin-bottom:5px">
+      ${ev.ico} ${nomeEvento(ev.tipo)} se aproximando!
+    </div>
+    <div style="font-size:12px;line-height:1.6">
+      📍 ~<strong>${ev.distKm}km</strong> · chegando em <strong>~${ev.dH}h</strong> (${formatHora(ev.hora)})<br>
+      <span class="seta" style="transform:rotate(${ev.dir||0}deg)">➤</span>
+      De ${nomeDe(ev.dir)} · ~${ev.vel}km/h
+    </div>
+    <button class="btn btn-sm" style="width:100%;margin-top:8px"
+            onclick="abrirDetalheEvento(${evJ})">
+      🔍 Detalhes
+    </button>`;
+  wrap.appendChild(div);
+  setTimeout(()=>{ if(div.parentNode) div.remove(); },30000);
+  if (typeof Notification!=='undefined'&&Notification.permission==='granted') {
+    try { new Notification(`RRFS — ${nomeEvento(ev.tipo)}`,{body:`~${ev.distKm}km · ~${ev.dH}h · ${nomeDe(ev.dir)}`}); }
+    catch(e){}
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   RENDERS
+════════════════════════════════════════════════════════════ */
+function renderStats(m) {
+  try {
+    const c=m.current||{};
+    const [desc,ico]=WMO[c.weather_code??0]||['--','❓'];
+    const t=c.temperature_2m,s=c.apparent_temperature;
+    const u=c.relative_humidity_2m,v=c.wind_speed_10m??0;
+    const g=c.wind_gusts_10m??0,p=c.precipitation??0;
+    const nv=c.cloud_cover??0,day=c.is_day??1;
+    document.getElementById('stats-grid').innerHTML=[
+      {val:t!=null?`<span style="color:${corTemp(t)}">${t.toFixed(1)}<small style="font-size:19px">°C</small></span>`:'--',lbl:'Temperatura',sub:s!=null?`Sensação ${s.toFixed(1)}°C`:'',cli:true},
+      {val:`<span style="font-size:34px">${ico}</span>`,lbl:desc,sub:`☁️ ${nv}% · ${day?'🌞 Dia':'🌙 Noite'}`,cli:true},
+      {val:`${v.toFixed(0)}<small style="font-size:16px"> km/h</small>`,lbl:'Vento',sub:g>0?`💨 Rajada ${g.toFixed(0)} km/h`:'—',cor:g>=60?'var(--warning)':null},
+      {val:u!=null?`${u}<small style="font-size:16px">%</small>`:'--',lbl:'Umidade',sub:p>0?`🌧️ ${p.toFixed(1)} mm`:'☂️ Sem chuva'},
+    ].map(c=>`
+      <div class="stat-card ${c.cli?'clicavel':''}"
+           ${c.cli?'onclick="explicarCondicaoAtual()"':''}>
+        <div class="stat-valor" ${c.cor?`style="color:${c.cor}"`:''}>
+          ${c.val}
+        </div>
+        <div class="stat-label">${c.lbl}</div>
+        ${c.sub?`<div class="stat-sub">${c.sub}</div>`:''}
+      </div>`).join('');
+  } catch(e){ console.error('[RRFS] renderStats:',e); }
+}
+
+function renderHoraria(m) {
+  try {
+    const h=m.hourly||{},times=h.time||[];
+    let html='';
+    for (let i=_idxAtual;i<Math.min(_idxAtual+25,times.length);i++) {
+      const t=times[i];
+      const temp=h.temperature_2m?.[i];
+      const wmo=h.weather_code?.[i]??0;
+      const prob=h.precipitation_probability?.[i]??0;
+      const prec=h.precipitation?.[i]??0;
+      const vent=h.wind_speed_10m?.[i]??0;
+      const gust=h.wind_gusts_10m?.[i]??0;
+      const dir=h.wind_direction_10m?.[i];
+      const[,ico]=WMO[wmo]||['','❓'];
+      const ps=prec>0?` ${prec.toFixed(1)}mm`:'';
+      html+=`<div class="hora-row ${i===_idxAtual?'atual':''}"
+               onclick="explicarHora(${i},'${formatHora(t)}')" title="Clique para explicar">
+        <span style="color:var(--text2);font-size:11px">${formatHora(t)}</span>
+        <span>${ico}</span>
+        <span style="color:${corTemp(temp)};font-weight:600">${temp!=null?temp.toFixed(1)+'°':'--'}</span>
+        <span style="color:var(--info);font-size:11px">${prob>5?`💧${prob}%${ps}`:'<span style="color:var(--text3)">—</span>'}</span>
+        <span style="color:var(--text2);font-size:11px">${setaDe(dir)}${vent.toFixed(0)}</span>
+        <span style="color:${gust>=60?'var(--warning)':'var(--text2)'};font-size:11px">↑${gust.toFixed(0)}</span>
+      </div>`;
+    }
+    document.getElementById('horaria-lista').innerHTML=
+      html||'<p class="text-muted text-small text-center" style="padding:16px">Sem dados</p>';
+  } catch(e){ console.error('[RRFS] renderHoraria:',e); }
+}
+
+function renderDiaria(m) {
+  try {
+    const d=m.daily||{},times=d.time||[];
+    let html='';
+    times.forEach((t,i)=>{
+      const wmo=d.weather_code?.[i]??0;
+      const tmax=d.temperature_2m_max?.[i];
+      const tmin=d.temperature_2m_min?.[i];
+      const prob=d.precipitation_probability_max?.[i]??0;
+      const prec=d.precipitation_sum?.[i]??0;
+      const uv=d.uv_index_max?.[i]??0;
+      const gmax=d.wind_gusts_10m_max?.[i]??0;
+      const[,ico]=WMO[wmo]||['','❓'];
+      const lbl=formatData(t);
+      html+=`<div class="dia-card" onclick="explicarDia(${i},'${lbl}')" title="Clique para entender">
+        <div class="dc-nome">${lbl}</div>
+        <div class="dc-ico">${ico}</div>
+        <div class="dc-max" style="color:${corTemp(tmax)}">${tmax!=null?tmax.toFixed(0):'--'}°</div>
+        <div class="dc-min">${tmin!=null?tmin.toFixed(0):'--'}°</div>
+        ${prob>15?`<div class="dc-extra">💧${prob}% ${prec>0?prec.toFixed(0)+'mm':''}</div>`:''}
+        ${gmax>=60?`<div style="font-size:10px;color:var(--warning);margin-top:2px">💨${gmax.toFixed(0)}</div>`:''}
+        ${uv>=8?`<div style="font-size:10px;color:var(--danger);margin-top:2px">☀️UV${uv.toFixed(0)}</div>`:''}
+      </div>`;
+    });
+    document.getElementById('dia-grid').innerHTML=html||'<p class="text-muted">Sem dados</p>';
+  } catch(e){ console.error('[RRFS] renderDiaria:',e); }
+}
+
+function renderAlertas(lista) {
+  try {
+    const el=document.getElementById('alertas-lista');
+    if (!lista||!lista.length) {
+      el.innerHTML=`<div class="text-center" style="padding:24px">
+        <div style="font-size:32px;margin-bottom:8px">✅</div>
+        <p style="color:var(--success);font-weight:600">Nenhum alerta ativo</p>
+        <p class="text-muted text-small" style="margin-top:4px">Condições favoráveis nas próximas 24h</p>
+      </div>`;
+      return;
+    }
+    const ord={EXTREMO:0,PERIGO:1,ALERTA:2,ATENCAO:3,INFO:4};
+    const sorted=[...lista].sort((a,b)=>(ord[a.severidade]??5)-(ord[b.severidade]??5));
+    el.innerHTML=sorted.map(a=>{
+      const hora=formatHora(a.hora);
+      const conc=a.concordancia<1?` · 📊 ${(a.concordancia*100).toFixed(0)}% conc.`:'';
+      const tipo=(a.tipo||'').replace(/_/g,' ').toUpperCase();
+      const enc=encodeURIComponent(JSON.stringify(a));
+      return `<div class="alert-box alert-${a.severidade}" style="cursor:pointer"
+               onclick="explicarAlerta(JSON.parse(decodeURIComponent('${enc}')))"
+               title="Clique para entender">
+        <div class="alert-icon">${a.icone}</div>
+        <div style="flex:1;min-width:0">
+          <div class="alert-title">${a.severidade} — ${tipo}</div>
+          <div class="alert-desc">${a.descricao}</div>
+          <div class="alert-hora">⏰ ${hora||'Agora'}${conc}
+            <span style="color:var(--accent2);margin-left:8px;font-size:11px">🔍 Por que?</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e){ console.error('[RRFS] renderAlertas:',e); }
+}
+
+function renderBanner(lista) {
+  try {
+    const criticos=lista.filter(a=>a.severidade==='EXTREMO'||a.severidade==='PERIGO');
+    const banner=document.getElementById('banner-critico');
+    if (!criticos.length){banner.style.display='none';return;}
+    banner.style.display='block';
+    document.getElementById('banner-lista').innerHTML=
+      criticos.map(a=>`<div class="banner-item">
+        <span>${a.icone}</span><strong>${a.severidade}:</strong>
+        <span>${a.descricao}</span>
+        <span style="color:var(--text2);font-size:11px">${formatHora(a.hora)||'Agora'}</span>
+      </div>`).join('');
+  } catch(e){}
+}
+
+function renderResumo(r) {
+  try {
+    document.getElementById('resumo-emoji').textContent=r?.emoji||'📊';
+    document.getElementById('resumo-txt').textContent=r?.simples||'Análise concluída.';
+    const cores={'FAVORÁVEL':'rgba(63,185,80,.05)','MONITORAMENTO':'rgba(210,153,34,.05)','ATENÇÃO':'rgba(248,81,73,.06)'};
+    document.getElementById('resumo-box').style.background=(r&&cores[r.tom])||'var(--bg2)';
+  } catch(e){}
+}
+
+function renderDetalhes(m) {
+  try {
+    const h=m.hourly||{},idx=_idxAtual,n=6;
+    const sl=key=>(h[key]||[]).slice(idx,idx+n).filter(v=>v!=null);
+    const mx=key=>Math.max(...sl(key),0);
+    const sm=key=>sl(key).reduce((a,b)=>a+b,0);
+    const gustMx=mx('wind_gusts_10m'),windMx=mx('wind_speed_10m');
+    const precSm=sm('precipitation'),capeMx=mx('cape');
+    const liArr=sl('lifted_index'),liMin=liArr.length?Math.min(...liArr):null;
+    const cinArr=sl('convective_inhibition'),cinMin=cinArr.length?Math.min(...cinArr):null;
+    const vis6=Math.min(...(h.visibility||[]).slice(idx,idx+n).filter(v=>v!=null),99999);
+    const uvMx=mx('uv_index');
+    const dirArr=sl('wind_direction_10m');
+    const dirPr=dirArr.length?Math.round(dirArr.reduce((a,b)=>a+b,0)/dirArr.length):null;
+
+    const cG=gustMx>=80?'var(--danger)':gustMx>=50?'var(--warning)':'var(--success)';
+    document.getElementById('det-vento').innerHTML=`
+      <div class="det-item"><span class="det-label">Rajada máx. 6h</span><span class="det-valor" style="color:${cG}">${gustMx.toFixed(0)} km/h</span></div>
+      <div class="det-item"><span class="det-label">Vento médio</span><span class="det-valor">${windMx.toFixed(0)} km/h</span></div>
+      <div class="det-item"><span class="det-label">Direção predominante</span>
+        <span class="det-valor">
+          <span class="seta" style="transform:rotate(${dirPr||0}deg)">➤</span>
+          ${nomeDe(dirPr)} ${dirPr!=null?'('+dirPr+'°)':''}
+        </span>
+      </div>
+      ${gustMx>=60?`<div style="margin-top:8px;padding:7px;background:rgba(210,153,34,.1);border-radius:var(--radius-sm);font-size:12px;color:var(--warning)">⚠️ Rajadas fortes previstas</div>`:''}
+      <button class="btn btn-sm" style="width:100%;margin-top:10px" onclick="explicarCondicaoAtual()">🔍 Entender vento</button>`;
+
+    const cP=precSm>=50?'var(--extreme)':precSm>=25?'var(--danger)':precSm>=10?'var(--warning)':'var(--info)';
+    document.getElementById('det-prec').innerHTML=`
+      <div class="det-item"><span class="det-label">Acum. próx. 6h</span><span class="det-valor" style="color:${precSm>0?cP:'var(--success)'}"> ${precSm.toFixed(1)} mm</span></div>
+      <div class="det-item"><span class="det-label">Visibilidade mín.</span><span class="det-valor">${vis6<99999?(vis6>=1000?(vis6/1000).toFixed(1)+'km':vis6+'m'):'>10km'}</span></div>
+      <div class="det-item"><span class="det-label">UV máximo 6h</span><span class="det-valor" style="color:${uvMx>=8?'var(--danger)':'var(--text)'}">${uvMx>0?uvMx.toFixed(0):'—'} ${uvMx>=11?'🔴':uvMx>=8?'🟠':uvMx>=5?'🟡':'🟢'}</span></div>
+      ${precSm===0?`<div style="margin-top:8px;font-size:12px;color:var(--success)">☀️ Sem chuva nas próximas 6h</div>`:''}`;
+
+    const cC=capeMx>=2500?'var(--danger)':capeMx>=1000?'var(--warning)':'var(--success)';
+    const lC=capeMx>=2500?'SEVERO':capeMx>=1000?'ALTO':capeMx>=300?'MODERD.':'BAIXO';
+    const pct=Math.min((capeMx/4000)*100,100);
+    document.getElementById('det-inst').innerHTML=`
+      <div class="det-item"><span class="det-label">CAPE máx. 6h</span>
+        <span class="det-valor" style="color:${cC}">${capeMx.toFixed(0)} J/kg
+          <span style="font-size:10px;margin-left:4px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:20px">${lC}</span>
+        </span>
+      </div>
+      <div class="gauge-wrap">
+        <div class="gauge-lbl"><span>Estável</span><span>Moderado</span><span>Severo</span></div>
+        <div class="gauge-bar"><div class="gauge-pin" style="left:${pct}%"></div></div>
+      </div>
+      <div class="det-item"><span class="det-label">Índice LI</span>
+        <span class="det-valor" style="color:${liMin!=null&&liMin<=-4?'var(--danger)':liMin!=null&&liMin<=-2?'var(--warning)':'var(--text)'}">${liMin!=null?liMin.toFixed(1):'—'}</span>
+      </div>
+      <div class="det-item"><span class="det-label">Inibição CIN</span>
+        <span class="det-valor">${cinMin!=null&&cinMin<0?cinMin.toFixed(0)+' J/kg':'—'}</span>
+      </div>
+      ${capeMx>=1000?`<button class="btn btn-sm" style="width:100%;margin-top:10px"
+        onclick='explicarAlerta({tipo:"tempestade",icone:"⛈️",severidade:"ALERTA",hora:"",concordancia:1,n_modelos:1,descricao:"Instabilidade detectada",dados:{cape:${capeMx},li:${liMin??0}}})'>
+        🔍 Por que há instabilidade?</button>`:''}`;
+  } catch(e){ console.error('[RRFS] renderDetalhes:',e); }
+}
+
+function renderCape(m) {
+  try {
+    const h=m.hourly||{};
+    const times=(h.time||[]).slice(_idxAtual,_idxAtual+24);
+    const capes=(h.cape||[]).slice(_idxAtual,_idxAtual+24);
+    const maxC=Math.max(...capes.filter(v=>v!=null),1);
+    if (!times.length) return;
+    let bars='';
+    times.forEach((t,i)=>{
+      const v=capes[i]??0;
+      const pct=Math.min((v/Math.max(maxC,100))*100,100);
+      const cor=v>=2500?'var(--extreme)':v>=1000?'var(--danger)':v>=300?'var(--warning)':'var(--success)';
+      const h24=formatHora(t);
+      bars+=`<div class="cape-col" onclick="explicarHora(${_idxAtual+i},'${h24}')" title="CAPE ${v.toFixed(0)} J/kg — ${h24}">
+        <div class="cape-vlbl">${v>200?v.toFixed(0):''}</div>
+        <div class="cape-outer"><div class="cape-inner" style="height:${pct}%;background:${cor}"></div></div>
+        <div class="cape-hlbl">${h24}</div>
+      </div>`;
+    });
+    document.getElementById('cape-tl').innerHTML=
+      `<div style="display:flex;gap:3px;align-items:flex-end;overflow-x:auto;padding:4px 0 6px">${bars}</div>`;
+  } catch(e){ console.error('[RRFS] renderCape:',e); }
+}
+
+/* ════════════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════════════ */
+if (TEM_LOC) {
+  iniciarMapa();
+  if (typeof Notification!=='undefined'&&Notification.permission==='default') {
+    Notification.requestPermission().catch(()=>{});
+  }
+  atualizarDados();
+  setInterval(atualizarDados,    5*60*1000);
+  setInterval(atualizarMiniRadar,2*60*1000);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,16 @@
+flask
+flask-login
+flask-socketio
+werkzeug
+requests
+aiohttp
+apscheduler
+geopy
+numpy
+pandas
+Pillow
+python-dotenv
+eventlet
+flask-limiter
+flask-compress
+psutil
